@@ -1,0 +1,16 @@
+[package]
+name = "advent-of-code-2023"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+itertools = "0.12"
+regex = "1"
+
+[lints.rust]
+rust_2018_idioms = "warn"
+
+[lints.clippy]
+all = "warn"
