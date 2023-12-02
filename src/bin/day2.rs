@@ -25,10 +25,12 @@ impl FromStr for Reveal {
 
         for cubes_str in s.split(", ") {
             let (num_str, color) = cubes_str.split_once(' ').ok_or_else(err_fn_0)?;
+            let num = num_str.parse().map_err(err_fn_1)?;
+
             match color {
-                "red" => red = Some(num_str.parse().map_err(err_fn_1)?),
-                "green" => green = Some(num_str.parse().map_err(err_fn_1)?),
-                "blue" => blue = Some(num_str.parse().map_err(err_fn_1)?),
+                "red" => red = Some(num),
+                "green" => green = Some(num),
+                "blue" => blue = Some(num),
                 _ => return Err(err_fn_0()),
             }
         }
