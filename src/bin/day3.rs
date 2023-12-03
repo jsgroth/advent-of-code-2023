@@ -35,7 +35,6 @@ struct IndexedNumber {
     number: u32,
 }
 
-#[allow(clippy::needless_range_loop)]
 fn solve_part_1(input: &str) -> u32 {
     let grid = parse_grid(input);
     let numbers = generate_number_grid(&grid);
@@ -44,11 +43,19 @@ fn solve_part_1(input: &str) -> u32 {
     let mut sum = 0;
     for (i, row) in grid.iter().enumerate() {
         for (j, space) in row.iter().copied().enumerate() {
-            let Space::Symbol(_) = space else { continue };
+            if !matches!(space, Space::Symbol(_)) {
+                continue;
+            }
 
-            for row in i.saturating_sub(1)..=cmp::min(i + 1, grid.len() - 1) {
-                for col in j.saturating_sub(1)..=cmp::min(j + 1, grid[i].len() - 1) {
-                    let IndexedNumber { index, number } = numbers[row][col];
+            let min_row = i.saturating_sub(1);
+            let max_row = cmp::min(i + 1, grid.len() - 1);
+            let min_col = j.saturating_sub(1);
+            let max_col = cmp::min(j + 1, grid[i].len() - 1);
+
+            for row in numbers.iter().take(max_row + 1).skip(min_row) {
+                for IndexedNumber { index, number } in
+                    row.iter().copied().take(max_col + 1).skip(min_col)
+                {
                     if number != 0 && added_indices.insert(index) {
                         sum += number;
                     }
@@ -117,9 +124,13 @@ fn compute_gear_ratio(numbers: &[Vec<IndexedNumber>], i: usize, j: usize) -> u32
     let mut product = 1;
     let mut added_indices = ArrayVec::<_, 6>::new();
 
-    for row in i.saturating_sub(1)..=cmp::min(i + 1, numbers.len() - 1) {
-        for col in j.saturating_sub(1)..=cmp::min(j + 1, numbers[i].len() - 1) {
-            let IndexedNumber { index, number } = numbers[row][col];
+    let min_row = i.saturating_sub(1);
+    let max_row = cmp::min(i + 1, numbers.len() - 1);
+    let min_col = j.saturating_sub(1);
+    let max_col = cmp::min(j + 1, numbers[i].len() - 1);
+
+    for row in numbers.iter().take(max_row + 1).skip(min_row) {
+        for IndexedNumber { index, number } in row.iter().copied().take(max_col + 1).skip(min_col) {
             if number != 0 && !added_indices.contains(&index) {
                 count += 1;
                 product *= number;
