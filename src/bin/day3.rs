@@ -3,7 +3,6 @@
 //! <https://adventofcode.com/2023/day/3>
 
 use arrayvec::ArrayVec;
-use std::cmp;
 use std::collections::HashSet;
 use std::error::Error;
 
@@ -48,9 +47,9 @@ fn solve_part_1(input: &str) -> u32 {
             }
 
             let min_row = i.saturating_sub(1);
-            let max_row = cmp::min(i + 1, grid.len() - 1);
+            let max_row = i + 1;
             let min_col = j.saturating_sub(1);
-            let max_col = cmp::min(j + 1, grid[i].len() - 1);
+            let max_col = j + 1;
 
             for row in numbers.iter().take(max_row + 1).skip(min_row) {
                 for IndexedNumber { index, number } in
@@ -125,9 +124,9 @@ fn compute_gear_ratio(numbers: &[Vec<IndexedNumber>], i: usize, j: usize) -> u32
     let mut added_indices = ArrayVec::<_, 6>::new();
 
     let min_row = i.saturating_sub(1);
-    let max_row = cmp::min(i + 1, numbers.len() - 1);
+    let max_row = i + 1;
     let min_col = j.saturating_sub(1);
-    let max_col = cmp::min(j + 1, numbers[i].len() - 1);
+    let max_col = j + 1;
 
     for row in numbers.iter().take(max_row + 1).skip(min_row) {
         for IndexedNumber { index, number } in row.iter().copied().take(max_col + 1).skip(min_col) {
