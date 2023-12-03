@@ -2,7 +2,9 @@
 //!
 //! <https://adventofcode.com/2023/day/3>
 
+use arrayvec::ArrayVec;
 use std::cmp;
+use std::collections::HashSet;
 use std::error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,31 +29,30 @@ fn parse_grid(input: &str) -> Vec<Vec<Space>> {
         .collect()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct IndexedNumber {
+    index: u32,
+    number: u32,
+}
+
+#[allow(clippy::needless_range_loop)]
 fn solve_part_1(input: &str) -> u32 {
     let grid = parse_grid(input);
     let numbers = generate_number_grid(&grid);
+    let mut added_indices = HashSet::new();
 
     let mut sum = 0;
     for (i, row) in grid.iter().enumerate() {
-        let mut last_was_digit = false;
         for (j, space) in row.iter().copied().enumerate() {
-            let Space::Digit(_) = space else {
-                last_was_digit = false;
-                continue;
-            };
+            let Space::Symbol(_) = space else { continue };
 
-            if last_was_digit {
-                continue;
-            }
-            last_was_digit = true;
-
-            let mut k = j + 1;
-            while k < grid[i].len() && matches!(grid[i][k], Space::Digit(..)) {
-                k += 1;
-            }
-
-            if is_symbol_nearby(&grid, i, j, k) {
-                sum += numbers[i][j];
+            for row in i.saturating_sub(1)..=cmp::min(i + 1, grid.len() - 1) {
+                for col in j.saturating_sub(1)..=cmp::min(j + 1, grid[i].len() - 1) {
+                    let IndexedNumber { index, number } = numbers[row][col];
+                    if number != 0 && added_indices.insert(index) {
+                        sum += number;
+                    }
+                }
             }
         }
     }
@@ -59,8 +60,9 @@ fn solve_part_1(input: &str) -> u32 {
     sum
 }
 
-fn generate_number_grid(grid: &[Vec<Space>]) -> Vec<Vec<u32>> {
-    let mut numbers = vec![vec![0; grid[0].len()]; grid.len()];
+fn generate_number_grid(grid: &[Vec<Space>]) -> Vec<Vec<IndexedNumber>> {
+    let mut numbers = vec![vec![IndexedNumber::default(); grid[0].len()]; grid.len()];
+    let mut index = 1;
 
     for (i, row) in grid.iter().enumerate() {
         let mut last_was_digit = false;
@@ -84,41 +86,12 @@ fn generate_number_grid(grid: &[Vec<Space>]) -> Vec<Vec<u32>> {
                 k += 1;
             }
 
-            numbers[i][j..k].fill(number);
+            numbers[i][j..k].fill(IndexedNumber { index, number });
+            index += 1;
         }
     }
 
     numbers
-}
-
-fn is_symbol_nearby(grid: &[Vec<Space>], i: usize, j: usize, k: usize) -> bool {
-    let col_range = j.saturating_sub(1)..cmp::min(k + 1, grid[0].len());
-
-    if i > 0 {
-        for col in col_range.clone() {
-            if matches!(grid[i - 1][col], Space::Symbol(..)) {
-                return true;
-            }
-        }
-    }
-
-    if i < grid.len() - 1 {
-        for col in col_range {
-            if matches!(grid[i + 1][col], Space::Symbol(..)) {
-                return true;
-            }
-        }
-    }
-
-    if j > 0 && matches!(grid[i][j - 1], Space::Symbol(..)) {
-        return true;
-    }
-
-    if k < grid.len() && matches!(grid[i][k], Space::Symbol(..)) {
-        return true;
-    }
-
-    false
 }
 
 fn solve_part_2(input: &str) -> u32 {
@@ -139,50 +112,18 @@ fn solve_part_2(input: &str) -> u32 {
     sum
 }
 
-fn compute_gear_ratio(numbers: &[Vec<u32>], i: usize, j: usize) -> u32 {
+fn compute_gear_ratio(numbers: &[Vec<IndexedNumber>], i: usize, j: usize) -> u32 {
     let mut count = 0;
     let mut product = 1;
+    let mut added_indices = ArrayVec::<_, 6>::new();
 
-    if i > 0 {
-        if numbers[i - 1][j] != 0 {
-            count += 1;
-            product *= numbers[i - 1][j];
-        } else {
-            if j > 0 && numbers[i - 1][j - 1] != 0 {
+    for row in i.saturating_sub(1)..=cmp::min(i + 1, numbers.len() - 1) {
+        for col in j.saturating_sub(1)..=cmp::min(j + 1, numbers[i].len() - 1) {
+            let IndexedNumber { index, number } = numbers[row][col];
+            if number != 0 && !added_indices.contains(&index) {
                 count += 1;
-                product *= numbers[i - 1][j - 1];
-            }
-
-            if j < numbers[i - 1].len() - 1 && numbers[i - 1][j + 1] != 0 {
-                count += 1;
-                product *= numbers[i - 1][j + 1];
-            }
-        }
-    }
-
-    if j > 0 && numbers[i][j - 1] != 0 {
-        count += 1;
-        product *= numbers[i][j - 1];
-    }
-
-    if j < numbers[i].len() - 1 && numbers[i][j + 1] != 0 {
-        count += 1;
-        product *= numbers[i][j + 1];
-    }
-
-    if i < numbers.len() - 1 {
-        if numbers[i + 1][j] != 0 {
-            count += 1;
-            product *= numbers[i + 1][j];
-        } else {
-            if j > 0 && numbers[i + 1][j - 1] != 0 {
-                count += 1;
-                product *= numbers[i + 1][j - 1];
-            }
-
-            if j < numbers[i + 1].len() - 1 && numbers[i + 1][j + 1] != 0 {
-                count += 1;
-                product *= numbers[i + 1][j + 1];
+                product *= number;
+                added_indices.push(index);
             }
         }
     }
