@@ -3,6 +3,7 @@
 //! <https://adventofcode.com/2023/day/4>
 
 use std::cmp;
+use std::collections::HashSet;
 use std::error::Error;
 
 fn solve_part_1(input: &str) -> u32 {
@@ -19,14 +20,13 @@ fn count_winning_numbers(line: &str) -> u32 {
     let (_, numbers_str) = line.split_once(": ").expect("Invalid line");
     let (winning_numbers, your_numbers) = numbers_str.split_once(" | ").expect("Invalid line");
 
-    let winning_numbers = parse_numbers(winning_numbers);
-    let your_numbers = parse_numbers(your_numbers);
+    let winning_numbers: HashSet<_> = parse_numbers(winning_numbers).collect();
 
-    your_numbers.into_iter().filter(|number| winning_numbers.contains(number)).count() as u32
+    parse_numbers(your_numbers).filter(|number| winning_numbers.contains(number)).count() as u32
 }
 
-fn parse_numbers(numbers: &str) -> Vec<u32> {
-    numbers.split(' ').filter_map(|s| s.parse::<u32>().ok()).collect()
+fn parse_numbers(numbers: &str) -> impl Iterator<Item = u32> + '_ {
+    numbers.split(' ').filter_map(|s| s.parse::<u32>().ok())
 }
 
 fn solve_part_2(input: &str) -> u32 {
