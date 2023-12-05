@@ -1,6 +1,6 @@
 //! Day 5: If You Give A Seed A Fertilizer
 //!
-//! <https://adventofcode.com/2023/day/5#part2>
+//! <https://adventofcode.com/2023/day/5>
 
 use std::cmp;
 use std::error::Error;
