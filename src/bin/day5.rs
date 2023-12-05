@@ -69,7 +69,7 @@ fn find_min_location_part_1(input: &Input, i: usize, value: i64) -> i64 {
 
     input.maps[i]
         .iter()
-        .filter_map(|range| {
+        .find_map(|range| {
             (range.source_start..range.source_start + range.length).contains(&value).then(|| {
                 find_min_location_part_1(
                     input,
@@ -78,11 +78,7 @@ fn find_min_location_part_1(input: &Input, i: usize, value: i64) -> i64 {
                 )
             })
         })
-        .min()
-        .unwrap_or_else(|| {
-            // Seed did not match any ranges; value maps to the next fertilizer directly
-            find_min_location_part_1(input, i + 1, value)
-        })
+        .unwrap_or_else(|| find_min_location_part_1(input, i + 1, value))
 }
 
 fn solve_part_2(input: &str) -> i64 {
