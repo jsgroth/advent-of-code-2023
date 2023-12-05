@@ -13,16 +13,9 @@ struct MapRange {
 }
 
 #[derive(Debug, Clone)]
-struct Map {
-    source: String,
-    destination: String,
-    ranges: Vec<MapRange>,
-}
-
-#[derive(Debug, Clone)]
 struct Input {
     seeds: Vec<i64>,
-    maps: Vec<Map>,
+    maps: Vec<Vec<MapRange>>,
 }
 
 fn parse_input(input: &str) -> Input {
@@ -37,11 +30,7 @@ fn parse_input(input: &str) -> Input {
     lines.next();
 
     let mut maps = Vec::new();
-    while let Some(header) = lines.next() {
-        let (name_str, _) = header.split_once(' ').expect("Invalid input: header line");
-        let (source_name, dest_name) =
-            name_str.split_once("-to-").expect("Invalid input: header line");
-
+    while let Some(_header) = lines.next() {
         let mut ranges = Vec::new();
         for map_line in lines.by_ref().take_while(|line| !line.is_empty()) {
             let numbers: Vec<_> = map_line
@@ -55,7 +44,7 @@ fn parse_input(input: &str) -> Input {
             });
         }
 
-        maps.push(Map { source: source_name.into(), destination: dest_name.into(), ranges });
+        maps.push(ranges);
     }
 
     Input { seeds, maps }
@@ -68,39 +57,37 @@ fn solve_part_1(input: &str) -> i64 {
         .seeds
         .iter()
         .copied()
-        .map(|seed| find_min_location_part_1(&input, "seed", seed))
+        .map(|seed| find_min_location_part_1(&input, 0, seed))
         .min()
         .expect("No seeds in input")
 }
 
-fn find_min_location_part_1(input: &Input, name: &str, value: i64) -> i64 {
-    if name == "location" {
+fn find_min_location_part_1(input: &Input, i: usize, value: i64) -> i64 {
+    if i == input.maps.len() {
         return value;
     }
 
     let mut min = i64::MAX;
 
-    'outer: for map in &input.maps {
-        if map.source.as_str() != name {
-            continue;
+    let mut in_range = false;
+    for range in &input.maps[i] {
+        if (range.source_start..range.source_start + range.length).contains(&value) {
+            min = cmp::min(
+                min,
+                find_min_location_part_1(
+                    input,
+                    i + 1,
+                    value + range.dest_start - range.source_start,
+                ),
+            );
+            in_range = true;
+            break;
         }
+    }
 
-        for range in &map.ranges {
-            if (range.source_start..range.source_start + range.length).contains(&value) {
-                min = cmp::min(
-                    min,
-                    find_min_location_part_1(
-                        input,
-                        &map.destination,
-                        value + range.dest_start - range.source_start,
-                    ),
-                );
-                continue 'outer;
-            }
-        }
-
+    if !in_range {
         // Seed did not match any ranges; value maps to the next fertilizer directly
-        min = cmp::min(min, find_min_location_part_1(input, &map.destination, value));
+        min = cmp::min(min, find_min_location_part_1(input, i + 1, value));
     }
 
     min
@@ -110,7 +97,7 @@ fn solve_part_2(input: &str) -> i64 {
     let mut input = parse_input(input);
 
     for map in &mut input.maps {
-        map.ranges.sort_by_key(|range| range.source_start);
+        map.sort_by_key(|range| range.source_start);
     }
 
     input
@@ -118,67 +105,55 @@ fn solve_part_2(input: &str) -> i64 {
         .chunks_exact(2)
         .map(|chunk| {
             let &[start, length] = chunk else { unreachable!("chunks_exact(2)") };
-            find_min_location_part_2(&input, "seed", start, length)
+            find_min_location_part_2(&input, 0, start, length)
         })
         .min()
         .expect("No seeds in input")
 }
 
-fn find_min_location_part_2(input: &Input, name: &str, start: i64, length: i64) -> i64 {
-    if name == "location" {
+fn find_min_location_part_2(input: &Input, i: usize, start: i64, length: i64) -> i64 {
+    if i == input.maps.len() {
         return start;
     }
 
     let mut min = i64::MAX;
 
-    for map in &input.maps {
-        if map.source.as_str() != name {
-            continue;
+    let mut start = start;
+    let mut length = length;
+    for range in &input.maps[i] {
+        if start < range.source_start {
+            // Part of this range is before the next range in the map; pass values through directly
+            let before_len = cmp::min(range.source_start - start, length);
+            min = cmp::min(min, find_min_location_part_2(input, i + 1, start, before_len));
+
+            length -= before_len;
+            start += before_len;
         }
 
-        let mut start = start;
-        let mut length = length;
-        for range in &map.ranges {
-            if start < range.source_start {
-                // Part of this range is before the next range in the map; pass values through directly
-                let before_len = cmp::min(range.source_start - start, length);
-                min = cmp::min(
-                    min,
-                    find_min_location_part_2(input, &map.destination, start, before_len),
-                );
-
-                length -= before_len;
-                start += before_len;
-            }
-
-            if length == 0 {
-                break;
-            }
-
-            let range_end = range.source_start + range.length;
-            if start < range_end {
-                // Part of this range overlaps the next range; map values appropriately
-                let end = start + length;
-                let overlap_len = cmp::min(end, range_end) - start;
-                let overlap_start = range.dest_start + (start - range.source_start);
-                min = cmp::min(
-                    min,
-                    find_min_location_part_2(input, &map.destination, overlap_start, overlap_len),
-                );
-
-                length -= overlap_len;
-                start += overlap_len;
-            }
-
-            if length == 0 {
-                break;
-            }
+        if length == 0 {
+            break;
         }
 
-        if length != 0 {
-            // Part of this range is after the last range; pass values through directly
-            min = cmp::min(min, find_min_location_part_2(input, &map.destination, start, length));
+        let range_end = range.source_start + range.length;
+        if start < range_end {
+            // Part of this range overlaps the next range; map values appropriately
+            let end = start + length;
+            let overlap_len = cmp::min(end, range_end) - start;
+            let overlap_start = range.dest_start + (start - range.source_start);
+            min = cmp::min(min, find_min_location_part_2(input, i + 1, overlap_start, overlap_len));
+
+            length -= overlap_len;
+            start += overlap_len;
         }
+
+        if length == 0 {
+            break;
+        }
+    }
+
+    if length != 0 {
+        // Part of this range is after the last range; pass values through directly
+        min = cmp::min(min, find_min_location_part_2(input, i + 1, start, length));
     }
 
     min
