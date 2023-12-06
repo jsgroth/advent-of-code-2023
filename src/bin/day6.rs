@@ -28,8 +28,8 @@ fn find_distance_diff(time: u64, target_distance: u64) -> u64 {
     let c = -(target_distance as f64);
 
     // Min is + and max is - because a is always negative
-    let min = (-b + (b * b - 4.0 * a * c).sqrt()) / 2.0 * a;
-    let max = (-b - (b * b - 4.0 * a * c).sqrt()) / 2.0 * a;
+    let min = (-b + (b * b - 4.0 * a * c).sqrt()) / (2.0 * a);
+    let max = (-b - (b * b - 4.0 * a * c).sqrt()) / (2.0 * a);
 
     (max.ceil() as u64 - 1) - (min.floor() as u64 + 1) + 1
 }
