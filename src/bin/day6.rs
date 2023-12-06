@@ -35,8 +35,9 @@ fn find_distance_diff(time: u64, target_distance: u64) -> u64 {
 }
 
 fn parse_line_part_2(line: &str) -> u64 {
-    let s: String = line.chars().filter(char::is_ascii_digit).collect();
-    s.parse().expect("Invalid input line")
+    line.chars()
+        .filter_map(|c| c.to_digit(10))
+        .fold(0, |number, digit| 10 * number + u64::from(digit))
 }
 
 fn solve_part_2(input: &str) -> u64 {
