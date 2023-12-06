@@ -2,7 +2,6 @@
 //!
 //! <https://adventofcode.com/2023/day/6>
 
-use std::cmp;
 use std::error::Error;
 
 fn parse_line_part_1(line: &str) -> Vec<u64> {
@@ -22,18 +21,17 @@ fn solve_part_1(input: &str) -> u64 {
 }
 
 fn find_distance_diff(time: u64, target_distance: u64) -> u64 {
-    let mut min = u64::MAX;
-    let mut max = u64::MIN;
+    // Quadratic formula: x = (-b +/- sqrt(b^2 - 4ac)) / 2a
+    // Solve (t - x) * x = d, or -x^2 + tx - d = 0
+    let a = -1.0;
+    let b = time as f64;
+    let c = -(target_distance as f64);
 
-    for t in 1..time {
-        let distance = (time - t) * t;
-        if distance > target_distance {
-            min = cmp::min(min, t);
-            max = cmp::max(max, t);
-        }
-    }
+    // Min is + and max is - because a is always negative
+    let min = (-b + (b * b - 4.0 * a * c).sqrt()) / 2.0 * a;
+    let max = (-b - (b * b - 4.0 * a * c).sqrt()) / 2.0 * a;
 
-    max - min + 1
+    (max.ceil() as u64 - 1) - (min.floor() as u64 + 1) + 1
 }
 
 fn parse_line_part_2(line: &str) -> u64 {
