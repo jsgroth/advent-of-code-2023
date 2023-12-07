@@ -27,87 +27,64 @@ const JACK_VALUE: u8 = 11;
 
 impl Hand {
     fn hand_type(self) -> HandType {
-        let mut copy = self.0;
-        copy.sort();
+        let group_lengths = compute_group_lengths(self.0, false);
 
-        if copy[0] == copy[4] {
-            return HandType::FiveOfAKind;
+        match (group_lengths[0], group_lengths[1]) {
+            (5, _) => HandType::FiveOfAKind,
+            (4, _) => HandType::FourOfAKind,
+            (3, 2) => HandType::FullHouse,
+            (3, 1) => HandType::ThreeOfAKind,
+            (2, 2) => HandType::TwoPair,
+            (2, 1) => HandType::OnePair,
+            (1, _) => HandType::HighCard,
+            _ => panic!("Unexpected group lengths: {group_lengths:?}"),
         }
-
-        if copy[0] == copy[3] || copy[1] == copy[4] {
-            return HandType::FourOfAKind;
-        }
-
-        if (copy[0] == copy[2] && copy[3] == copy[4]) || (copy[0] == copy[1] && copy[2] == copy[4])
-        {
-            return HandType::FullHouse;
-        }
-
-        if copy[0] == copy[2] || copy[1] == copy[3] || copy[2] == copy[4] {
-            return HandType::ThreeOfAKind;
-        }
-
-        if (copy[0] == copy[1] && copy[2] == copy[3])
-            || (copy[0] == copy[1] && copy[3] == copy[4])
-            || (copy[1] == copy[2] && copy[3] == copy[4])
-        {
-            return HandType::TwoPair;
-        }
-
-        if copy[0] == copy[1] || copy[1] == copy[2] || copy[2] == copy[3] || copy[3] == copy[4] {
-            return HandType::OnePair;
-        }
-
-        HandType::HighCard
     }
 
     fn best_possible_hand_type(self) -> HandType {
         let jack_count = self.0.into_iter().filter(|&card| card == JACK_VALUE).count();
 
-        let mut copy = self.0;
-        for value in &mut copy {
-            // Sort jacks to the end
-            if *value == JACK_VALUE {
-                *value = u8::MAX;
-            }
-        }
-        copy.sort();
+        let group_lengths = compute_group_lengths(self.0, true);
 
-        match jack_count {
-            0 => self.hand_type(),
-            1 => {
-                if copy[0] == copy[3] {
-                    HandType::FiveOfAKind
-                } else if copy[0] == copy[2] || copy[1] == copy[3] {
-                    HandType::FourOfAKind
-                } else if copy[0] == copy[1] && copy[2] == copy[3] {
-                    HandType::FullHouse
-                } else if copy[0] == copy[1] || copy[1] == copy[2] || copy[2] == copy[3] {
-                    HandType::ThreeOfAKind
-                } else {
-                    HandType::OnePair
-                }
-            }
-            2 => {
-                if copy[0] == copy[2] {
-                    HandType::FiveOfAKind
-                } else if copy[0] == copy[1] || copy[1] == copy[2] {
-                    HandType::FourOfAKind
-                } else {
-                    HandType::ThreeOfAKind
-                }
-            }
-            3 => {
-                if copy[0] == copy[1] {
-                    HandType::FiveOfAKind
-                } else {
-                    HandType::FourOfAKind
-                }
-            }
-            4 | 5 => HandType::FiveOfAKind,
-            _ => panic!("Invalid jack count: {jack_count}"),
+        match (jack_count, group_lengths[0], group_lengths[1]) {
+            (0, _, _) => self.hand_type(),
+            (1, 4, _) | (2, 3, _) | (3, 2, _) | (4, _, _) | (5, _, _) => HandType::FiveOfAKind,
+            (1, 3, _) | (2, 2, _) | (3, 1, _) => HandType::FourOfAKind,
+            (1, 2, 2) => HandType::FullHouse,
+            (1, 2, 1) | (2, 1, _) => HandType::ThreeOfAKind,
+            (1, 1, _) => HandType::OnePair,
+            _ => panic!(
+                "Unexpected jack count / group lengths combination: {jack_count} / {group_lengths:?}"
+            ),
         }
     }
+}
+
+fn compute_group_lengths(mut hand: [u8; 5], ignore_jacks: bool) -> [u8; 5] {
+    hand.sort();
+
+    let mut out = [0; 5];
+    let mut out_idx = 0;
+
+    let mut last_card = None;
+    for card in hand {
+        if ignore_jacks && card == JACK_VALUE {
+            continue;
+        }
+
+        if Some(card) != last_card {
+            if last_card.is_some() {
+                out_idx += 1;
+            }
+            last_card = Some(card);
+        }
+
+        out[out_idx] += 1;
+    }
+
+    out.sort_by(|a, b| a.cmp(b).reverse());
+
+    out
 }
 
 impl From<&[u8]> for Hand {
