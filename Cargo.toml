@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 arrayvec = "0.7"
 itertools = "0.12"
-regex = "1"
+nom = "7"
 
 [lints.rust]
 rust_2018_idioms = "warn"
