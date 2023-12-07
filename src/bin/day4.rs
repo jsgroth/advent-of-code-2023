@@ -2,30 +2,25 @@
 //!
 //! <https://adventofcode.com/2023/day/4>
 
-use nom::bytes::complete::tag;
-use nom::character::complete::{char, digit1, space1};
-use nom::combinator::map_res;
-use nom::multi::separated_list1;
-use nom::sequence::{delimited, pair, separated_pair};
-use nom::IResult;
 use std::cmp;
 use std::collections::HashSet;
 use std::error::Error;
+use winnow::ascii::{digit1, space1};
+use winnow::combinator::{separated, separated_pair};
+use winnow::prelude::*;
 
-fn parse_u32(input: &str) -> IResult<&str, u32> {
-    map_res(digit1, str::parse)(input)
+fn parse_u32(input: &mut &str) -> PResult<u32> {
+    digit1.parse_to().parse_next(input)
 }
 
-fn parse_numbers(input: &str) -> IResult<&str, Vec<u32>> {
-    separated_list1(space1, parse_u32)(input)
+fn parse_numbers(input: &mut &str) -> PResult<Vec<u32>> {
+    separated(1.., parse_u32, space1).parse_next(input)
 }
 
-fn parse_line(input: &str) -> IResult<&str, (Vec<u32>, Vec<u32>)> {
-    let (input, _) = delimited(pair(tag("Card"), space1), digit1, pair(char(':'), space1))(input)?;
+fn parse_line(input: &mut &str) -> PResult<(Vec<u32>, Vec<u32>)> {
+    ("Card", space1, digit1, ':', space1).parse_next(input)?;
 
-    let (input, (winning_numbers, your_numbers)) =
-        separated_pair(parse_numbers, delimited(space1, char('|'), space1), parse_numbers)(input)?;
-    Ok((input, (winning_numbers, your_numbers)))
+    separated_pair(parse_numbers, (space1, '|', space1), parse_numbers).parse_next(input)
 }
 
 fn solve_part_1(input: &str) -> u32 {
@@ -39,7 +34,7 @@ fn solve_part_1(input: &str) -> u32 {
 }
 
 fn count_winning_numbers(line: &str) -> u32 {
-    let (_, (winning_numbers, your_numbers)) = parse_line(line).expect("Invalid line");
+    let (winning_numbers, your_numbers) = parse_line.parse(line).expect("Invalid line");
 
     let winning_numbers: HashSet<_> = winning_numbers.into_iter().collect();
     your_numbers.into_iter().filter(|number| winning_numbers.contains(number)).count() as u32

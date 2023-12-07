@@ -2,12 +2,12 @@
 //!
 //! <https://adventofcode.com/2023/day/7>
 
-use nom::character::complete::{digit1, newline, one_of, space1};
-use nom::combinator::map_res;
-use nom::multi::{many_m_n, separated_list1};
-use nom::sequence::separated_pair;
-use nom::IResult;
 use std::error::Error;
+use winnow::ascii::{digit1, newline, space1};
+use winnow::combinator::{fail, opt, repeat, separated, separated_pair, success};
+use winnow::dispatch;
+use winnow::prelude::*;
+use winnow::token::any;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum HandType {
@@ -95,41 +95,42 @@ impl From<&[u8]> for Hand {
     }
 }
 
-fn parse_card(input: &str) -> IResult<&str, u8> {
-    let (input, c) = one_of("23456789TJQKA")(input)?;
-    let value = match c {
-        '2'..='9' => c.to_digit(10).unwrap() as u8,
-        'T' => 10,
-        'J' => 11,
-        'Q' => 12,
-        'K' => 13,
-        'A' => 14,
-        _ => panic!("Invalid card char: {c}"),
-    };
-
-    Ok((input, value))
+fn parse_u64(input: &mut &str) -> PResult<u64> {
+    digit1.parse_to().parse_next(input)
 }
 
-fn parse_hand(input: &str) -> IResult<&str, Hand> {
-    let (input, cards) = many_m_n(5, 5, parse_card)(input)?;
-
-    Ok((input, Hand::from(cards.as_ref())))
+fn parse_card(input: &mut &str) -> PResult<u8> {
+    dispatch! { any;
+        c @ '2'..='9' => success(c.to_digit(10).unwrap() as u8),
+        'T' => success(10),
+        'J' => success(11),
+        'Q' => success(12),
+        'K' => success(13),
+        'A' => success(14),
+        _ => fail,
+    }
+    .parse_next(input)
 }
 
-fn parse_u64(input: &str) -> IResult<&str, u64> {
-    map_res(digit1, str::parse)(input)
+fn parse_hand(input: &mut &str) -> PResult<Hand> {
+    let cards: Vec<_> = repeat(5, parse_card).parse_next(input)?;
+    Ok(Hand::from(cards.as_ref()))
 }
 
-fn parse_line(input: &str) -> IResult<&str, (Hand, u64)> {
-    separated_pair(parse_hand, space1, parse_u64)(input)
+fn parse_line(input: &mut &str) -> PResult<(Hand, u64)> {
+    separated_pair(parse_hand, space1, parse_u64).parse_next(input)
 }
 
-fn parse_input(input: &str) -> IResult<&str, Vec<(Hand, u64)>> {
-    separated_list1(newline, parse_line)(input)
+fn parse_input(input: &mut &str) -> PResult<Vec<(Hand, u64)>> {
+    let hands = separated(1.., parse_line, newline).parse_next(input)?;
+
+    opt(newline).parse_next(input)?;
+
+    Ok(hands)
 }
 
 fn solve_part_1(input: &str) -> u64 {
-    let (_, mut hands) = parse_input(input).expect("Invalid input");
+    let mut hands = parse_input.parse(input).expect("Invalid input");
 
     hands.sort_by(|(a, _), (b, _)| a.hand_type().cmp(&b.hand_type()).then_with(|| a.0.cmp(&b.0)));
 
@@ -137,7 +138,7 @@ fn solve_part_1(input: &str) -> u64 {
 }
 
 fn solve_part_2(input: &str) -> u64 {
-    let (_, hands) = parse_input(input).expect("Invalid input");
+    let hands = parse_input.parse(input).expect("Invalid input");
 
     let mut hands: Vec<_> = hands
         .into_iter()

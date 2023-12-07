@@ -2,13 +2,10 @@
 //!
 //! <https://adventofcode.com/2023/day/2>
 
-use nom::bytes::complete::tag;
-use nom::character::complete::{alpha1, char, digit1};
-use nom::combinator::map_res;
-use nom::multi::separated_list1;
-use nom::sequence::{delimited, separated_pair};
-use nom::IResult;
 use std::error::Error;
+use winnow::ascii::{alpha1, digit1};
+use winnow::combinator::{delimited, fail, separated, separated_pair};
+use winnow::prelude::*;
 
 #[derive(Debug, Clone, Default)]
 struct Reveal {
@@ -23,43 +20,43 @@ struct Game {
     reveals: Vec<Reveal>,
 }
 
-fn parse_u32(input: &str) -> IResult<&str, u32> {
-    map_res(digit1, str::parse)(input)
+fn parse_u32(input: &mut &str) -> PResult<u32> {
+    digit1.parse_to().parse_next(input)
 }
 
-fn parse_reveal_field(input: &str) -> IResult<&str, (u32, &str)> {
-    separated_pair(parse_u32, char(' '), alpha1)(input)
+fn parse_reveal_field<'a>(input: &mut &'a str) -> PResult<(u32, &'a str)> {
+    separated_pair(parse_u32, ' ', alpha1).parse_next(input)
 }
 
-fn parse_reveal(input: &str) -> IResult<&str, Reveal> {
-    let (input, fields) = separated_list1(tag(", "), parse_reveal_field)(input)?;
+fn parse_reveal(input: &mut &str) -> PResult<Reveal> {
+    let fields: Vec<_> = separated(1.., parse_reveal_field, ", ").parse_next(input)?;
 
-    let reveal = fields.into_iter().fold(Reveal::default(), |mut reveal, (number, color)| {
+    let mut reveal = Reveal::default();
+    for (number, color) in fields {
         match color {
             "red" => reveal.red = Some(number),
             "green" => reveal.green = Some(number),
             "blue" => reveal.blue = Some(number),
-            _ => panic!("Invalid color string: {color}"),
+            _ => return fail(input),
         }
-        reveal
-    });
+    }
 
-    Ok((input, reveal))
+    Ok(reveal)
 }
 
-fn parse_game(input: &str) -> IResult<&str, Game> {
-    let (rest, game_id) = delimited(tag("Game "), parse_u32, tag(": "))(input)?;
+fn parse_game(input: &mut &str) -> PResult<Game> {
+    let game_id = delimited("Game ", parse_u32, ": ").parse_next(input)?;
 
-    let (rest, reveals) = separated_list1(tag("; "), parse_reveal)(rest)?;
+    let reveals = separated(1.., parse_reveal, "; ").parse_next(input)?;
 
-    Ok((rest, Game { id: game_id, reveals }))
+    Ok(Game { id: game_id, reveals })
 }
 
 fn solve_part_1(input: &str) -> u32 {
     input
         .lines()
         .filter_map(|line| {
-            let (_, game) = parse_game(line).expect("Failed to parse game");
+            let game = parse_game.parse(line).expect("Failed to parse game");
 
             game.reveals
                 .iter()
@@ -77,7 +74,7 @@ fn solve_part_2(input: &str) -> u32 {
     input
         .lines()
         .map(|line| {
-            let (_, game) = parse_game(line).expect("Failed to parse game");
+            let game = parse_game.parse(line).expect("Failed to parse game");
 
             let red = game.reveals.iter().filter_map(|reveal| reveal.red).max().unwrap_or(0);
             let green = game.reveals.iter().filter_map(|reveal| reveal.green).max().unwrap_or(0);
