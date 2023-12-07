@@ -2,6 +2,12 @@
 //!
 //! <https://adventofcode.com/2023/day/5>
 
+use nom::bytes::complete::tag;
+use nom::character::complete::{char, digit1, newline, not_line_ending, space1};
+use nom::combinator::map_res;
+use nom::multi::separated_list1;
+use nom::sequence::{pair, preceded, separated_pair, terminated};
+use nom::IResult;
 use std::cmp;
 use std::error::Error;
 
@@ -18,40 +24,38 @@ struct Input {
     maps: Vec<Vec<MapRange>>,
 }
 
-fn parse_input(input: &str) -> Input {
-    let mut lines = input.lines();
-    let seeds_str = lines.next().expect("Invalid input: no lines");
-    let (_, seed_numbers) = seeds_str.split_once(": ").expect("Invalid input: seeds line");
-    let seeds: Vec<_> = seed_numbers
-        .split_whitespace()
-        .map(|s| s.parse::<i64>().expect("Invalid input: seed numbers"))
-        .collect();
+fn parse_i64(input: &str) -> IResult<&str, i64> {
+    map_res(digit1, str::parse)(input)
+}
 
-    lines.next();
+fn parse_seeds(input: &str) -> IResult<&str, Vec<i64>> {
+    preceded(tag("seeds: "), separated_list1(char(' '), parse_i64))(input)
+}
 
-    let mut maps = Vec::new();
-    while let Some(_header) = lines.next() {
-        let mut ranges = Vec::new();
-        for map_line in lines.by_ref().take_while(|line| !line.is_empty()) {
-            let numbers: Vec<_> = map_line
-                .split_whitespace()
-                .map(|s| s.parse::<i64>().expect("Invalid input: map line"))
-                .collect();
-            ranges.push(MapRange {
-                dest_start: numbers[0],
-                source_start: numbers[1],
-                length: numbers[2],
-            });
-        }
+fn parse_map_range(input: &str) -> IResult<&str, MapRange> {
+    let (input, (dest_start, (source_start, length))) =
+        separated_pair(parse_i64, space1, separated_pair(parse_i64, space1, parse_i64))(input)?;
 
-        maps.push(ranges);
-    }
+    Ok((input, MapRange { dest_start, source_start, length }))
+}
 
-    Input { seeds, maps }
+fn parse_map(input: &str) -> IResult<&str, Vec<MapRange>> {
+    // Skip header line
+    let (input, _) = pair(not_line_ending, newline)(input)?;
+
+    separated_list1(newline, parse_map_range)(input)
+}
+
+fn parse_input(input: &str) -> IResult<&str, Input> {
+    let (input, seeds) = terminated(parse_seeds, pair(newline, newline))(input)?;
+
+    let (input, maps) = separated_list1(pair(newline, newline), parse_map)(input)?;
+
+    Ok((input, Input { seeds, maps }))
 }
 
 fn solve_part_1(input: &str) -> i64 {
-    let input = parse_input(input);
+    let (_, input) = parse_input(input).expect("Invalid input");
 
     input
         .seeds
@@ -82,7 +86,7 @@ fn find_min_location_part_1(input: &Input, i: usize, value: i64) -> i64 {
 }
 
 fn solve_part_2(input: &str) -> i64 {
-    let mut input = parse_input(input);
+    let (_, mut input) = parse_input(input).expect("Invalid input");
 
     for map in &mut input.maps {
         map.sort_by_key(|range| range.source_start);

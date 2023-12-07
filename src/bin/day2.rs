@@ -2,8 +2,8 @@
 //!
 //! <https://adventofcode.com/2023/day/2>
 
-use nom::bytes::complete::{tag, take_while1};
-use nom::character::complete::char;
+use nom::bytes::complete::tag;
+use nom::character::complete::{alpha1, char, digit1};
 use nom::combinator::map_res;
 use nom::multi::separated_list1;
 use nom::sequence::{delimited, separated_pair};
@@ -24,15 +24,15 @@ struct Game {
 }
 
 fn parse_u32(input: &str) -> IResult<&str, u32> {
-    map_res(take_while1(|c: char| c.is_ascii_digit()), |s: &str| s.parse::<u32>())(input)
+    map_res(digit1, str::parse)(input)
 }
 
 fn parse_reveal_field(input: &str) -> IResult<&str, (u32, &str)> {
-    separated_pair(parse_u32, char(' '), take_while1(char::is_alphabetic))(input)
+    separated_pair(parse_u32, char(' '), alpha1)(input)
 }
 
 fn parse_reveal(input: &str) -> IResult<&str, Reveal> {
-    let (rest, fields) = separated_list1(tag(", "), parse_reveal_field)(input)?;
+    let (input, fields) = separated_list1(tag(", "), parse_reveal_field)(input)?;
 
     let reveal = fields.into_iter().fold(Reveal::default(), |mut reveal, (number, color)| {
         match color {
@@ -44,7 +44,7 @@ fn parse_reveal(input: &str) -> IResult<&str, Reveal> {
         reveal
     });
 
-    Ok((rest, reveal))
+    Ok((input, reveal))
 }
 
 fn parse_game(input: &str) -> IResult<&str, Game> {
