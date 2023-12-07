@@ -7,7 +7,6 @@ use nom::combinator::map_res;
 use nom::multi::{many_m_n, separated_list1};
 use nom::sequence::separated_pair;
 use nom::IResult;
-use std::cmp;
 use std::error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -63,25 +62,51 @@ impl Hand {
     }
 
     fn best_possible_hand_type(self) -> HandType {
-        let mut best = self.hand_type();
+        let jack_count = self.0.into_iter().filter(|&card| card == JACK_VALUE).count();
 
-        for i in 0..5 {
-            if self.0[i] != JACK_VALUE {
-                continue;
-            }
-
-            for value in 0..15 {
-                if value == JACK_VALUE {
-                    continue;
-                }
-
-                let mut copy = self.0;
-                copy[i] = value;
-                best = cmp::max(best, Self(copy).best_possible_hand_type());
+        let mut copy = self.0;
+        for value in &mut copy {
+            // Sort jacks to the end
+            if *value == JACK_VALUE {
+                *value = u8::MAX;
             }
         }
+        copy.sort();
 
-        best
+        match jack_count {
+            0 => self.hand_type(),
+            1 => {
+                if copy[0] == copy[3] {
+                    HandType::FiveOfAKind
+                } else if copy[0] == copy[2] || copy[1] == copy[3] {
+                    HandType::FourOfAKind
+                } else if copy[0] == copy[1] && copy[2] == copy[3] {
+                    HandType::FullHouse
+                } else if copy[0] == copy[1] || copy[1] == copy[2] || copy[2] == copy[3] {
+                    HandType::ThreeOfAKind
+                } else {
+                    HandType::OnePair
+                }
+            }
+            2 => {
+                if copy[0] == copy[2] {
+                    HandType::FiveOfAKind
+                } else if copy[0] == copy[1] || copy[1] == copy[2] {
+                    HandType::FourOfAKind
+                } else {
+                    HandType::ThreeOfAKind
+                }
+            }
+            3 => {
+                if copy[0] == copy[1] {
+                    HandType::FiveOfAKind
+                } else {
+                    HandType::FourOfAKind
+                }
+            }
+            4 | 5 => HandType::FiveOfAKind,
+            _ => panic!("Invalid jack count: {jack_count}"),
+        }
     }
 }
 
@@ -143,6 +168,7 @@ fn solve_part_2(input: &str) -> u64 {
             let hand_type = hand.best_possible_hand_type();
             for value in &mut hand.0 {
                 if *value == JACK_VALUE {
+                    // Make jacks sort below every other card when comparing arrays
                     *value = 1;
                 }
             }
