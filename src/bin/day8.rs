@@ -106,48 +106,48 @@ fn solve_part_2(input: &str) -> u64 {
     }
 
     let mut steps = 0;
-    loop {
-        for (direction_idx, &direction) in input.directions.iter().enumerate() {
-            for node in &mut current {
-                match direction {
-                    Direction::Left => {
-                        *node = node_map.get(node.left).expect("Invalid left in input");
-                    }
-                    Direction::Right => {
-                        *node = node_map.get(node.right).expect("Invalid right in input");
-                    }
+    for (direction_idx, &direction) in input.directions.iter().enumerate().cycle() {
+        for node in &mut current {
+            match direction {
+                Direction::Left => {
+                    *node = node_map.get(node.left).expect("Invalid left in input");
                 }
-            }
-
-            steps += 1;
-            if current.iter().all(|node| node.name.ends_with('Z')) {
-                return steps;
-            }
-
-            for (node_idx, node) in current.iter().enumerate() {
-                if cycle_len[node_idx].is_none() {
-                    if let Some(&prev_steps) =
-                        visited_to_step[node_idx].get(&(direction_idx as u32, node.name))
-                    {
-                        cycle_len[node_idx] = Some(steps - prev_steps);
-                    } else {
-                        visited_to_step[node_idx].insert((direction_idx as u32, node.name), steps);
-                    }
+                Direction::Right => {
+                    *node = node_map.get(node.right).expect("Invalid right in input");
                 }
-            }
-
-            // This takes advantage of a property of the (actual) input.
-            // For each node i that ends in 'A', following the directions will eventually result in a cycle of length C[i]
-            // that begins after N[i] steps.
-            // It just so happens that for each of these cycles, the cycle lands on a node that ends in 'Z' at
-            // step C[i] - N[i], which causes the math to work out such that the minimum step where every node ends in
-            // 'Z' is the least common multiple of all of the cycle lengths C[i].
-            if cycle_len.iter().all(Option::is_some) {
-                let nums: Vec<_> = cycle_len.iter().copied().map(Option::unwrap).collect();
-                return lcm(&nums);
             }
         }
+
+        steps += 1;
+        if current.iter().all(|node| node.name.ends_with('Z')) {
+            return steps;
+        }
+
+        for (node_idx, node) in current.iter().enumerate() {
+            if cycle_len[node_idx].is_none() {
+                if let Some(&prev_steps) =
+                    visited_to_step[node_idx].get(&(direction_idx as u32, node.name))
+                {
+                    cycle_len[node_idx] = Some(steps - prev_steps);
+                } else {
+                    visited_to_step[node_idx].insert((direction_idx as u32, node.name), steps);
+                }
+            }
+        }
+
+        // This takes advantage of a property of the (actual) input.
+        // For each node i that ends in 'A', following the directions will eventually result in a cycle of length C[i]
+        // that begins after N[i] steps.
+        // It just so happens that for each of these cycles, the cycle lands on a node that ends in 'Z' at
+        // step C[i] - N[i], which causes the math to work out such that the minimum step where every node ends in
+        // 'Z' is the least common multiple of all of the cycle lengths C[i].
+        if cycle_len.iter().all(Option::is_some) {
+            let nums: Vec<_> = cycle_len.iter().copied().map(Option::unwrap).collect();
+            return lcm(&nums);
+        }
     }
+
+    unreachable!("Above loop is iterating over an infinite iterator and never breaks, only returns")
 }
 
 fn lcm(nums: &[u64]) -> u64 {
