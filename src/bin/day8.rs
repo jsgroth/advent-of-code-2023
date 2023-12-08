@@ -151,12 +151,7 @@ fn solve_part_2(input: &str) -> u64 {
 }
 
 fn lcm(nums: &[u64]) -> u64 {
-    if nums.len() == 1 {
-        nums[0]
-    } else {
-        let rest_lcm = lcm(&nums[1..]);
-        nums[0] * rest_lcm / gcd(nums[0], rest_lcm)
-    }
+    nums.iter().copied().reduce(|a, b| a * b / gcd(a, b)).expect("No cycle lengths in LCM input")
 }
 
 fn gcd(a: u64, b: u64) -> u64 {
