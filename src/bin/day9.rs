@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/9>
 
-use std::error::Error;
+use advent_of_code_2023::impl_standard_main;
 
 fn parse_line(line: &str) -> Vec<i64> {
     line.split(' ').map(|s| s.parse::<i64>().expect("Invalid line")).collect()
@@ -37,17 +37,7 @@ fn solve_part_2(input: &str) -> i64 {
         .sum()
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let input = advent_of_code_2023::read_input()?;
-
-    let solution1 = solve_part_1(&input);
-    println!("{solution1}");
-
-    let solution2 = solve_part_2(&input);
-    println!("{solution2}");
-
-    Ok(())
-}
+impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

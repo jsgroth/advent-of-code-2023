@@ -2,9 +2,9 @@
 //!
 //! <https://adventofcode.com/2023/day/4>
 
+use advent_of_code_2023::impl_standard_main;
 use std::cmp;
 use std::collections::HashSet;
-use std::error::Error;
 use winnow::ascii::{digit1, space1};
 use winnow::combinator::{separated, separated_pair};
 use winnow::prelude::*;
@@ -57,17 +57,7 @@ fn solve_part_2(input: &str) -> u32 {
     card_counts.into_iter().sum()
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let input = advent_of_code_2023::read_input()?;
-
-    let solution1 = solve_part_1(&input);
-    println!("{solution1}");
-
-    let solution2 = solve_part_2(&input);
-    println!("{solution2}");
-
-    Ok(())
-}
+impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

@@ -2,8 +2,8 @@
 //!
 //! <https://adventofcode.com/2023/day/8>
 
+use advent_of_code_2023::impl_standard_main;
 use std::collections::HashMap;
-use std::error::Error;
 use winnow::ascii::{alphanumeric1, newline};
 use winnow::combinator::{
     delimited, fail, opt, repeat, separated, separated_pair, success, terminated,
@@ -158,17 +158,7 @@ fn gcd(a: u64, b: u64) -> u64 {
     if b == 0 { a } else { gcd(b, a % b) }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let input = advent_of_code_2023::read_input()?;
-
-    let solution1 = solve_part_1(&input);
-    println!("{solution1}");
-
-    let solution2 = solve_part_2(&input);
-    println!("{solution2}");
-
-    Ok(())
-}
+impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

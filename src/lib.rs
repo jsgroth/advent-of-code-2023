@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::{env, fs};
 
-// Read input filename from arg $1 and read file contents into a String
+// Read input filename from arg $1 and then read file contents into a String
 pub fn read_input() -> Result<String, Box<dyn Error>> {
     let mut args = env::args();
     args.next();
@@ -11,4 +11,21 @@ pub fn read_input() -> Result<String, Box<dyn Error>> {
     let contents = fs::read_to_string(&filename)
         .map_err(|err| format!("Error reading file from '{filename}': {err}"))?;
     Ok(contents)
+}
+
+#[macro_export]
+macro_rules! impl_standard_main {
+    (p1: $part_1_fn:ident, p2: $part_2_fn:ident) => {
+        fn main() -> Result<(), Box<dyn ::std::error::Error>> {
+            let input = $crate::read_input()?;
+
+            let solution1 = $part_1_fn(&input);
+            println!("{solution1}");
+
+            let solution2 = $part_2_fn(&input);
+            println!("{solution2}");
+
+            Ok(())
+        }
+    };
 }

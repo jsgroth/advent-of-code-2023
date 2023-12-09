@@ -2,9 +2,9 @@
 //!
 //! <https://adventofcode.com/2023/day/3>
 
+use advent_of_code_2023::impl_standard_main;
 use arrayvec::ArrayVec;
 use std::collections::HashSet;
-use std::error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Space {
@@ -141,17 +141,7 @@ fn compute_gear_ratio(numbers: &[Vec<IndexedNumber>], i: usize, j: usize) -> u32
     if count == 2 { product } else { 0 }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let input = advent_of_code_2023::read_input()?;
-
-    let solution1 = solve_part_1(&input);
-    println!("{solution1}");
-
-    let solution2 = solve_part_2(&input);
-    println!("{solution2}");
-
-    Ok(())
-}
+impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

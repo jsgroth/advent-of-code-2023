@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/2>
 
-use std::error::Error;
+use advent_of_code_2023::impl_standard_main;
 use winnow::ascii::{alpha1, digit1};
 use winnow::combinator::{delimited, fail, separated, separated_pair};
 use winnow::prelude::*;
@@ -85,17 +85,7 @@ fn solve_part_2(input: &str) -> u32 {
         .sum()
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let input = advent_of_code_2023::read_input()?;
-
-    let solution1 = solve_part_1(&input);
-    println!("{solution1}");
-
-    let solution2 = solve_part_2(&input);
-    println!("{solution2}");
-
-    Ok(())
-}
+impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

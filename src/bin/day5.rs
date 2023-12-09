@@ -2,8 +2,8 @@
 //!
 //! <https://adventofcode.com/2023/day/5>
 
+use advent_of_code_2023::impl_standard_main;
 use std::cmp;
-use std::error::Error;
 use winnow::ascii::{digit1, newline, not_line_ending, space1};
 use winnow::combinator::{opt, preceded, separated, terminated};
 use winnow::prelude::*;
@@ -155,17 +155,7 @@ fn find_min_location_part_2(input: &Input, i: usize, start: i64, length: i64) ->
     min
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let input = advent_of_code_2023::read_input()?;
-
-    let solution1 = solve_part_1(&input);
-    println!("{solution1}");
-
-    let solution2 = solve_part_2(&input);
-    println!("{solution2}");
-
-    Ok(())
-}
+impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {
