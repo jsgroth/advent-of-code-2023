@@ -25,7 +25,7 @@ fn solve_part_1(input: &str) -> i64 {
     input
         .lines()
         .map(|line| {
-            fold_differences(&parse_line(line), |numbers, next| *numbers.last().unwrap() + next)
+            fold_differences(&parse_line(line), |numbers, diff| *numbers.last().unwrap() + diff)
         })
         .sum()
 }
@@ -33,7 +33,7 @@ fn solve_part_1(input: &str) -> i64 {
 fn solve_part_2(input: &str) -> i64 {
     input
         .lines()
-        .map(|line| fold_differences(&parse_line(line), |numbers, prev| numbers[0] - prev))
+        .map(|line| fold_differences(&parse_line(line), |numbers, diff| numbers[0] - diff))
         .sum()
 }
 
