@@ -16,7 +16,7 @@ pub fn read_input() -> Result<String, Box<dyn Error>> {
 #[macro_export]
 macro_rules! impl_standard_main {
     (p1: $part_1_fn:ident, p2: $part_2_fn:ident) => {
-        fn main() -> Result<(), Box<dyn ::std::error::Error>> {
+        fn main() -> ::std::result::Result<(), ::std::boxed::Box<dyn ::std::error::Error>> {
             let input = $crate::read_input()?;
 
             let solution1 = $part_1_fn(&input);
