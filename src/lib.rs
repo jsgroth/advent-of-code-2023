@@ -20,12 +20,12 @@ macro_rules! impl_standard_main {
             let input = $crate::read_input()?;
 
             let solution1 = $part_1_fn(&input);
-            println!("{solution1}");
+            ::std::println!("{solution1}");
 
             let solution2 = $part_2_fn(&input);
-            println!("{solution2}");
+            ::std::println!("{solution2}");
 
-            Ok(())
+            ::std::result::Result::Ok(())
         }
     };
 }
