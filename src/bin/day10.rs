@@ -218,12 +218,17 @@ fn fill_in_pipes(
         for j in 0..flood_map[i].len() {
             if i % 2 != 0 && j % 2 == 0 {
                 // Odd row, even column; check if spaces above and below are connected pipes
-                let Space::Pipe(north_dirs) = map[(i - 1) / 2][j / 2] else {
+                let north_row = (i - 1) / 2;
+                let south_row = (i + 1) / 2;
+                let col = j / 2;
+                if !loop_spaces.contains(&(north_row as i32, col as i32))
+                    || !loop_spaces.contains(&(south_row as i32, col as i32))
+                {
                     continue;
-                };
-                let Space::Pipe(south_dirs) = map[(i + 1) / 2][j / 2] else {
-                    continue;
-                };
+                }
+
+                let Space::Pipe(north_dirs) = map[north_row][col] else { continue };
+                let Space::Pipe(south_dirs) = map[south_row][col] else { continue };
 
                 if north_dirs.contains(&Direction::South) && south_dirs.contains(&Direction::North)
                 {
@@ -233,8 +238,17 @@ fn fill_in_pipes(
 
             if i % 2 == 0 && j % 2 != 0 {
                 // Even row, odd column; check if spaces left and right are connected pipes
-                let Space::Pipe(west_dirs) = map[i / 2][(j - 1) / 2] else { continue };
-                let Space::Pipe(east_dirs) = map[i / 2][(j + 1) / 2] else { continue };
+                let row = i / 2;
+                let west_col = (j - 1) / 2;
+                let east_col = (j + 1) / 2;
+                if !loop_spaces.contains(&(row as i32, west_col as i32))
+                    || !loop_spaces.contains(&(row as i32, east_col as i32))
+                {
+                    continue;
+                }
+
+                let Space::Pipe(west_dirs) = map[row][west_col] else { continue };
+                let Space::Pipe(east_dirs) = map[row][east_col] else { continue };
 
                 if west_dirs.contains(&Direction::East) && east_dirs.contains(&Direction::West) {
                     flood_map[i][j] = FloodSpace::Pipe;
