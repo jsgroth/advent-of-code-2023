@@ -85,9 +85,9 @@ fn solve_part_1(input: &str) -> u32 {
     let map = parse_input(input);
 
     let (start_i, start_j) = find_start(&map);
+    let loop_spaces = find_loop_spaces(&map, start_i, start_j);
 
-    let (_, loop_len) = traverse_map(&map, start_i, start_j);
-    (loop_len + 1) / 2
+    loop_spaces.len() as u32 / 2
 }
 
 fn find_start(map: &[Vec<Space>]) -> (usize, usize) {
@@ -99,13 +99,13 @@ fn find_start(map: &[Vec<Space>]) -> (usize, usize) {
         .expect("No start position in map")
 }
 
-fn traverse_map(map: &[Vec<Space>], start_i: usize, start_j: usize) -> (HashSet<(i32, i32)>, u32) {
+// Find all positions that are part of the loop
+fn find_loop_spaces(map: &[Vec<Space>], start_i: usize, start_j: usize) -> HashSet<(i32, i32)> {
     let mut visited: HashSet<(i32, i32)> = HashSet::new();
     visited.insert((start_i as i32, start_j as i32));
 
     let mut current_i = start_i as i32;
     let mut current_j = start_j as i32;
-    let mut steps = 0;
     loop {
         let mut found_path = false;
         for &direction in map[current_i as usize][current_j as usize].adjacent_directions() {
@@ -129,13 +129,9 @@ fn traverse_map(map: &[Vec<Space>], start_i: usize, start_j: usize) -> (HashSet<
 
         if !found_path {
             // Reached the end of the loop
-            break;
+            return visited;
         }
-
-        steps += 1;
     }
-
-    (visited, steps)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,26 +146,32 @@ fn solve_part_2(input: &str) -> u32 {
 
     let (start_i, start_j) = find_start(&map);
 
-    let (loop_spaces, _) = traverse_map(&map, start_i, start_j);
+    let loop_spaces = find_loop_spaces(&map, start_i, start_j);
 
+    // Replace the start pipe with a regular pipe
     let start_directions = determine_start_directions(&map, start_i, start_j);
     map[start_i][start_j] = Space::Pipe([start_directions[0], start_directions[1]]);
 
+    // Generate a new map that is ~double the size/resolution
     let mut flood_map = vec![vec![FloodSpace::Unknown; 2 * map[0].len() - 1]; 2 * map.len() - 1];
     fill_in_pipes(&map, &mut flood_map, &loop_spaces);
 
+    // Floodfill starting from left and right columns
     for i in 0..flood_map.len() {
         floodfill(&mut flood_map, i, 0);
         let last_col = flood_map[0].len() - 1;
         floodfill(&mut flood_map, i, last_col);
     }
 
+    // Floodfill starting from top and bottom rows
     for j in 0..flood_map[0].len() {
         floodfill(&mut flood_map, 0, j);
         let last_row = flood_map.len() - 1;
         floodfill(&mut flood_map, last_row, j);
     }
 
+    // Any space that has not been filled must be inside the loop
+    // Only count spaces that are present at original resolution (i % 2 == 0 && j % 2 == 0)
     let mut inside_count = 0;
     for i in (0..flood_map.len()).step_by(2) {
         for j in (0..flood_map[0].len()).step_by(2) {
@@ -215,6 +217,7 @@ fn fill_in_pipes(
     for i in 0..flood_map.len() {
         for j in 0..flood_map[i].len() {
             if i % 2 != 0 && j % 2 == 0 {
+                // Odd row, even column; check if spaces above and below are connected pipes
                 let Space::Pipe(north_dirs) = map[(i - 1) / 2][j / 2] else {
                     continue;
                 };
@@ -229,6 +232,7 @@ fn fill_in_pipes(
             }
 
             if i % 2 == 0 && j % 2 != 0 {
+                // Even row, odd column; check if spaces left and right are connected pipes
                 let Space::Pipe(west_dirs) = map[i / 2][(j - 1) / 2] else { continue };
                 let Space::Pipe(east_dirs) = map[i / 2][(j + 1) / 2] else { continue };
 
