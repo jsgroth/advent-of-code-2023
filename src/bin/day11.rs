@@ -32,7 +32,7 @@ fn parse_input(input: &str) -> impl Iterator<Item = Galaxy> + '_ {
 }
 
 fn solve(input: &str, expansion_size: i64) -> i64 {
-    let galaxies: HashSet<_> = parse_input(input).into_iter().collect();
+    let galaxies: HashSet<_> = parse_input(input).collect();
 
     let mut rows_with_galaxies = HashSet::new();
     let mut cols_with_galaxies = HashSet::new();

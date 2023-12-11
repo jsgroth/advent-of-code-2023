@@ -205,6 +205,7 @@ fn determine_start_directions(
         .collect()
 }
 
+#[allow(clippy::needless_range_loop)]
 fn fill_in_pipes(
     map: &[Vec<Space>],
     flood_map: &mut Vec<Vec<FloodSpace>>,
