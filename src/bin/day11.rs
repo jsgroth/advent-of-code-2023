@@ -26,8 +26,7 @@ fn parse_input(input: &str) -> impl Iterator<Item = Galaxy> + '_ {
     input.lines().enumerate().flat_map(|(i, line)| {
         line.chars()
             .enumerate()
-            .filter_map(|(j, c)| (c == '#').then_some(Galaxy::new(i as i64, j as i64)))
-            .collect::<Vec<_>>()
+            .filter_map(move |(j, c)| (c == '#').then_some(Galaxy::new(i as i64, j as i64)))
     })
 }
 
