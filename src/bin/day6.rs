@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/6>
 
-use advent_of_code_2023::impl_standard_main;
+use advent_of_code_2023::impl_main;
 
 fn parse_line_part_1(line: &str) -> Vec<u64> {
     line.split_whitespace().skip(1).map(|s| s.parse::<u64>().expect("Invalid line")).collect()
@@ -48,7 +48,7 @@ fn solve_part_2(input: &str) -> u64 {
     find_distance_diff(time, target_distance)
 }
 
-impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
+impl_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

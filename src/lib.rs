@@ -50,7 +50,7 @@ where
 }
 
 #[macro_export]
-macro_rules! impl_standard_main {
+macro_rules! impl_main {
     (p1: $part_1_fn:ident, p2: $part_2_fn:ident) => {
         fn main() -> ::std::result::Result<(), ::std::boxed::Box<dyn ::std::error::Error>> {
             let input = $crate::read_input()?;

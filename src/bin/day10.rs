@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/10>
 
-use advent_of_code_2023::impl_standard_main;
+use advent_of_code_2023::impl_main;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -279,7 +279,7 @@ fn floodfill(flood_map: &mut Vec<Vec<FloodSpace>>, i: usize, j: usize) {
     }
 }
 
-impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
+impl_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

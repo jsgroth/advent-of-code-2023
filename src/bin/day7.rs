@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/7>
 
-use advent_of_code_2023::impl_standard_main;
+use advent_of_code_2023::impl_main;
 use winnow::ascii::{digit1, newline, space1};
 use winnow::combinator::{fail, opt, repeat, separated, separated_pair, success};
 use winnow::dispatch;
@@ -158,7 +158,7 @@ fn solve_part_2(input: &str) -> u64 {
     hands.into_iter().enumerate().map(|(i, (_, bid, _))| (i as u64 + 1) * bid).sum()
 }
 
-impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
+impl_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

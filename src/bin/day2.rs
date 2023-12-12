@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/2>
 
-use advent_of_code_2023::impl_standard_main;
+use advent_of_code_2023::impl_main;
 use winnow::ascii::{alpha1, digit1};
 use winnow::combinator::{delimited, fail, separated, separated_pair};
 use winnow::prelude::*;
@@ -85,7 +85,7 @@ fn solve_part_2(input: &str) -> u32 {
         .sum()
 }
 
-impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
+impl_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

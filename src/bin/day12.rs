@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/12>
 
-use advent_of_code_2023::impl_standard_main;
+use advent_of_code_2023::impl_main;
 use std::collections::HashMap;
 use winnow::ascii::digit1;
 use winnow::combinator::{fail, repeat, separated, separated_pair, success};
@@ -157,7 +157,7 @@ fn damage_group_fits(springs: &[Spring], i: usize, group: u32) -> bool {
     no_damage_after && springs[i..i + group].iter().all(|&status| status != Spring::Operational)
 }
 
-impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
+impl_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

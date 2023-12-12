@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/11>
 
-use advent_of_code_2023::impl_standard_main;
+use advent_of_code_2023::impl_main;
 use std::cmp;
 use std::collections::HashSet;
 
@@ -96,7 +96,7 @@ fn solve_part_2(input: &str) -> i64 {
     solve(input, PART_2_EXPANSION_SIZE)
 }
 
-impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
+impl_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

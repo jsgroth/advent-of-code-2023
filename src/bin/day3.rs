@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/3>
 
-use advent_of_code_2023::impl_standard_main;
+use advent_of_code_2023::impl_main;
 use arrayvec::ArrayVec;
 use std::collections::HashSet;
 
@@ -141,7 +141,7 @@ fn compute_gear_ratio(numbers: &[Vec<IndexedNumber>], i: usize, j: usize) -> u32
     if count == 2 { product } else { 0 }
 }
 
-impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
+impl_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/4>
 
-use advent_of_code_2023::impl_standard_main;
+use advent_of_code_2023::impl_main;
 use std::cmp;
 use std::collections::HashSet;
 use winnow::ascii::{digit1, space1};
@@ -57,7 +57,7 @@ fn solve_part_2(input: &str) -> u32 {
     card_counts.into_iter().sum()
 }
 
-impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
+impl_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

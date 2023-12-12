@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/8>
 
-use advent_of_code_2023::impl_standard_main;
+use advent_of_code_2023::impl_main;
 use std::collections::HashMap;
 use winnow::ascii::{alphanumeric1, newline};
 use winnow::combinator::{
@@ -158,7 +158,7 @@ fn gcd(a: u64, b: u64) -> u64 {
     if b == 0 { a } else { gcd(b, a % b) }
 }
 
-impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
+impl_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {

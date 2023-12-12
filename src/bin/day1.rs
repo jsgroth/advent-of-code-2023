@@ -2,7 +2,7 @@
 //!
 //! <https://adventofcode.com/2023/day/1>
 
-use advent_of_code_2023::impl_standard_main;
+use advent_of_code_2023::impl_main;
 
 fn solve_part_1(input: &str) -> u32 {
     input
@@ -68,7 +68,7 @@ fn check_word(bytes: &[u8], i: usize) -> Option<u32> {
     None
 }
 
-impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
+impl_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {
