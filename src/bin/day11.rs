@@ -2,9 +2,9 @@
 //!
 //! <https://adventofcode.com/2023/day/11>
 
+use advent_of_code_2023::impl_standard_main;
 use std::cmp;
 use std::collections::HashSet;
-use std::error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Galaxy {
@@ -88,22 +88,15 @@ fn solve(input: &str, expansion_size: i64) -> i64 {
 const PART_1_EXPANSION_SIZE: i64 = 2;
 const PART_2_EXPANSION_SIZE: i64 = 1_000_000;
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let input = advent_of_code_2023::read_input()?;
-
-    let solution1 = solve(&input, PART_1_EXPANSION_SIZE);
-    println!("{solution1}");
-
-    let solution2 = solve(&input, PART_2_EXPANSION_SIZE);
-    println!("{solution2}");
-
-    advent_of_code_2023::time_solution(
-        || solve(&input, PART_1_EXPANSION_SIZE),
-        || solve(&input, PART_2_EXPANSION_SIZE),
-    );
-
-    Ok(())
+fn solve_part_1(input: &str) -> i64 {
+    solve(input, PART_1_EXPANSION_SIZE)
 }
+
+fn solve_part_2(input: &str) -> i64 {
+    solve(input, PART_2_EXPANSION_SIZE)
+}
+
+impl_standard_main!(p1: solve_part_1, p2: solve_part_2);
 
 #[cfg(test)]
 mod tests {
