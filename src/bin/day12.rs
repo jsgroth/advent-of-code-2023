@@ -56,13 +56,7 @@ fn solve_part_1(input: &str) -> u64 {
         .lines()
         .map(|line| {
             let record = parse_line.parse(line).expect("Invalid line");
-
-            count_unique_arrangements(
-                &record.springs,
-                &record.damage_groups,
-                initial_remaining_required(&record.damage_groups),
-                &mut HashMap::new(),
-            )
+            count_unique_arrangements(&record.springs, &record.damage_groups)
         })
         .sum()
 }
@@ -83,14 +77,20 @@ fn solve_part_2(input: &str) -> u64 {
 
             let new_damage_groups = record.damage_groups.repeat(5);
 
-            count_unique_arrangements(
-                &new_springs,
-                &new_damage_groups,
-                initial_remaining_required(&new_damage_groups),
-                &mut HashMap::new(),
-            )
+            count_unique_arrangements(&new_springs, &new_damage_groups)
         })
         .sum()
+}
+
+fn count_unique_arrangements(springs: &[Spring], damage_groups: &[u32]) -> u64 {
+    let remaining_required = initial_remaining_required(damage_groups);
+    assert!(
+        remaining_required <= springs.len(),
+        "Damage groups require {remaining_required} springs, cannot possibly fit in input of len {}",
+        springs.len()
+    );
+
+    count_inner(springs, damage_groups, remaining_required, &mut HashMap::new())
 }
 
 fn initial_remaining_required(groups: &[u32]) -> usize {
@@ -109,7 +109,7 @@ impl CacheKey {
     }
 }
 
-fn count_unique_arrangements(
+fn count_inner(
     springs: &[Spring],
     damage_groups: &[u32],
     remaining_required: usize,
@@ -118,10 +118,6 @@ fn count_unique_arrangements(
     if remaining_required == 0 {
         let damage_remaining = springs.iter().any(|&status| status == Spring::Damaged);
         return if damage_remaining { 0 } else { 1 };
-    }
-
-    if springs.len() < remaining_required {
-        return 0;
     }
 
     let cache_key = CacheKey::new(springs, damage_groups);
@@ -135,7 +131,7 @@ fn count_unique_arrangements(
             if damage_groups.len() == 1 && i == springs.len() - remaining_required {
                 count += 1;
             } else {
-                count += count_unique_arrangements(
+                count += count_inner(
                     &springs[i + damage_groups[0] as usize + 1..],
                     &damage_groups[1..],
                     remaining_required.saturating_sub(damage_groups[0] as usize + 1),
