@@ -97,6 +97,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let solution2 = solve(&input, PART_2_EXPANSION_SIZE);
     println!("{solution2}");
 
+    advent_of_code_2023::time_solution(
+        || solve(&input, PART_1_EXPANSION_SIZE),
+        || solve(&input, PART_2_EXPANSION_SIZE),
+    );
+
     Ok(())
 }
 
