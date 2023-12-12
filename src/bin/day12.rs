@@ -3,7 +3,7 @@
 //! <https://adventofcode.com/2023/day/12>
 
 use advent_of_code_2023::impl_main;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use winnow::ascii::digit1;
 use winnow::combinator::{fail, repeat, separated, separated_pair, success};
 use winnow::dispatch;
@@ -90,7 +90,7 @@ fn count_unique_arrangements(springs: &[Spring], damage_groups: &[u32]) -> u64 {
         springs.len()
     );
 
-    count_inner(springs, damage_groups, remaining_required, &mut HashMap::new())
+    count_inner(springs, damage_groups, remaining_required, &mut FxHashMap::default())
 }
 
 fn initial_remaining_required(groups: &[u32]) -> usize {
@@ -113,7 +113,7 @@ fn count_inner(
     springs: &[Spring],
     damage_groups: &[u32],
     remaining_required: usize,
-    cache: &mut HashMap<CacheKey, u64>,
+    cache: &mut FxHashMap<CacheKey, u64>,
 ) -> u64 {
     if remaining_required == 0 {
         let damage_remaining = springs.iter().any(|&status| status == Spring::Damaged);

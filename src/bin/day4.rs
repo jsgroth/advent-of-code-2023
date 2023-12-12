@@ -3,8 +3,8 @@
 //! <https://adventofcode.com/2023/day/4>
 
 use advent_of_code_2023::impl_main;
+use rustc_hash::FxHashSet;
 use std::cmp;
-use std::collections::HashSet;
 use winnow::ascii::{digit1, space1};
 use winnow::combinator::{separated, separated_pair};
 use winnow::prelude::*;
@@ -36,7 +36,7 @@ fn solve_part_1(input: &str) -> u32 {
 fn count_winning_numbers(line: &str) -> u32 {
     let (winning_numbers, your_numbers) = parse_line.parse(line).expect("Invalid line");
 
-    let winning_numbers: HashSet<_> = winning_numbers.into_iter().collect();
+    let winning_numbers: FxHashSet<_> = winning_numbers.into_iter().collect();
     your_numbers.into_iter().filter(|number| winning_numbers.contains(number)).count() as u32
 }
 

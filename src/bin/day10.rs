@@ -3,7 +3,7 @@
 //! <https://adventofcode.com/2023/day/10>
 
 use advent_of_code_2023::impl_main;
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Direction {
@@ -100,8 +100,8 @@ fn find_start(map: &[Vec<Space>]) -> (usize, usize) {
 }
 
 // Find all positions that are part of the loop
-fn find_loop_spaces(map: &[Vec<Space>], start_i: usize, start_j: usize) -> HashSet<(i32, i32)> {
-    let mut visited: HashSet<(i32, i32)> = HashSet::new();
+fn find_loop_spaces(map: &[Vec<Space>], start_i: usize, start_j: usize) -> FxHashSet<(i32, i32)> {
+    let mut visited: FxHashSet<(i32, i32)> = FxHashSet::default();
     visited.insert((start_i as i32, start_j as i32));
 
     let mut current_i = start_i as i32;
@@ -209,7 +209,7 @@ fn determine_start_directions(
 fn fill_in_pipes(
     map: &[Vec<Space>],
     flood_map: &mut Vec<Vec<FloodSpace>>,
-    loop_spaces: &HashSet<(i32, i32)>,
+    loop_spaces: &FxHashSet<(i32, i32)>,
 ) {
     for &(i, j) in loop_spaces {
         flood_map[(2 * i) as usize][(2 * j) as usize] = FloodSpace::Pipe;

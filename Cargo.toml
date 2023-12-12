@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 arrayvec = "0.7"
 itertools = "0.12"
+rustc-hash = "1"
 winnow = "0.5"
 
 [lints.rust]

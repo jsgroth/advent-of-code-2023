@@ -4,7 +4,7 @@
 
 use advent_of_code_2023::impl_main;
 use arrayvec::ArrayVec;
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Space {
@@ -37,7 +37,7 @@ struct IndexedNumber {
 fn solve_part_1(input: &str) -> u32 {
     let grid = parse_grid(input);
     let numbers = generate_number_grid(&grid);
-    let mut added_indices = HashSet::new();
+    let mut added_indices = FxHashSet::default();
 
     let mut sum = 0;
     for (i, row) in grid.iter().enumerate() {

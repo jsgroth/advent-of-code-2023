@@ -3,7 +3,7 @@
 //! <https://adventofcode.com/2023/day/8>
 
 use advent_of_code_2023::impl_main;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use winnow::ascii::{alphanumeric1, newline};
 use winnow::combinator::{
     delimited, fail, opt, repeat, separated, separated_pair, success, terminated,
@@ -88,7 +88,7 @@ fn solve_part_1(input: &str) -> u32 {
     steps
 }
 
-fn nodes_to_map<'a>(nodes: &[Node<'a>]) -> HashMap<&'a str, Node<'a>> {
+fn nodes_to_map<'a>(nodes: &[Node<'a>]) -> FxHashMap<&'a str, Node<'a>> {
     nodes.iter().map(|node| (node.name, node.clone())).collect()
 }
 
@@ -98,7 +98,8 @@ fn solve_part_2(input: &str) -> u64 {
     let node_map = nodes_to_map(&input.nodes);
 
     let mut current: Vec<_> = input.nodes.iter().filter(|node| node.name.ends_with('A')).collect();
-    let mut visited_to_step: Vec<HashMap<(u32, &str), u64>> = vec![HashMap::new(); current.len()];
+    let mut visited_to_step: Vec<FxHashMap<(u32, &str), u64>> =
+        vec![FxHashMap::default(); current.len()];
     let mut cycle_len: Vec<Option<u64>> = vec![None; current.len()];
 
     for (node, visited_map) in current.iter().zip(&mut visited_to_step) {

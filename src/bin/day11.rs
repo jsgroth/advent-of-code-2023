@@ -3,8 +3,8 @@
 //! <https://adventofcode.com/2023/day/11>
 
 use advent_of_code_2023::impl_main;
+use rustc_hash::FxHashSet;
 use std::cmp;
-use std::collections::HashSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Galaxy {
@@ -31,10 +31,10 @@ fn parse_input(input: &str) -> impl Iterator<Item = Galaxy> + '_ {
 }
 
 fn solve(input: &str, expansion_size: i64) -> i64 {
-    let galaxies: HashSet<_> = parse_input(input).collect();
+    let galaxies: FxHashSet<_> = parse_input(input).collect();
 
-    let mut rows_with_galaxies = HashSet::new();
-    let mut cols_with_galaxies = HashSet::new();
+    let mut rows_with_galaxies = FxHashSet::default();
+    let mut cols_with_galaxies = FxHashSet::default();
 
     let mut min_row = i64::MAX;
     let mut max_row = i64::MIN;
