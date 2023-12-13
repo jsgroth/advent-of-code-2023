@@ -101,7 +101,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn sample_input_part_2() {
         assert_eq!(solve_part_2(SAMPLE_INPUT), 400);
     }
