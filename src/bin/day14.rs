@@ -95,21 +95,23 @@ fn shift(
     dj: i32,
 ) {
     for (i, j) in positions {
-        if grid[i][j] == Rock::Round {
-            let mut ii = i as i32;
-            let mut jj = j as i32;
-
-            while (0..grid.len() as i32).contains(&(ii + di))
-                && (0..grid[0].len() as i32).contains(&(jj + dj))
-                && grid[(ii + di) as usize][(jj + dj) as usize] == Rock::None
-            {
-                grid[(ii + di) as usize][(jj + dj) as usize] = Rock::Round;
-                grid[ii as usize][jj as usize] = Rock::None;
-
-                ii += di;
-                jj += dj;
-            }
+        if grid[i][j] != Rock::Round {
+            continue;
         }
+
+        let mut ii = i as i32;
+        let mut jj = j as i32;
+
+        while (0..grid.len() as i32).contains(&(ii + di))
+            && (0..grid[0].len() as i32).contains(&(jj + dj))
+            && grid[(ii + di) as usize][(jj + dj) as usize] == Rock::None
+        {
+            ii += di;
+            jj += dj;
+        }
+
+        grid[ii as usize][jj as usize] = Rock::Round;
+        grid[i][j] = Rock::None;
     }
 }
 
