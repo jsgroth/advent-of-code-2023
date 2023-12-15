@@ -110,8 +110,8 @@ fn shift(
             jj += dj;
         }
 
-        grid[ii as usize][jj as usize] = Rock::Round;
         grid[i][j] = Rock::None;
+        grid[ii as usize][jj as usize] = Rock::Round;
     }
 }
 
