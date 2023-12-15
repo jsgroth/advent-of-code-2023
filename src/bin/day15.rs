@@ -92,13 +92,7 @@ fn focusing_power(buckets: &[Vec<(&str, u32)>]) -> u32 {
 }
 
 fn hash(s: &str) -> u32 {
-    let mut hash = 0;
-    for c in s.chars() {
-        hash += c as u32;
-        hash = (hash * 17) % 256;
-    }
-
-    hash
+    s.chars().fold(0, |hash, c| ((hash + c as u32) * 17) % 256)
 }
 
 impl_main!(p1: solve_part_1, p2: solve_part_2);
