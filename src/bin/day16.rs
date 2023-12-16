@@ -3,6 +3,7 @@
 //! <https://adventofcode.com/2023/day/16>
 
 use advent_of_code_2023::impl_main;
+use arrayvec::ArrayVec;
 use std::cmp;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -130,32 +131,36 @@ fn count_energized(
         .sum::<usize>() as u32
 }
 
-fn determine_new_directions(direction: Direction, space: Space) -> Vec<Direction> {
+fn determine_new_directions(direction: Direction, space: Space) -> ArrayVec<Direction, 2> {
+    let mut result = ArrayVec::new();
+
     match (direction, space) {
         (_, Space::Empty)
         | (Direction::Up | Direction::Down, Space::VerticalSplitter)
         | (Direction::Left | Direction::Right, Space::HorizontalSplitter) => {
-            vec![direction]
+            result.push(direction);
         }
         (Direction::Left | Direction::Right, Space::VerticalSplitter) => {
-            vec![Direction::Up, Direction::Down]
+            result.extend([Direction::Up, Direction::Down]);
         }
         (Direction::Up | Direction::Down, Space::HorizontalSplitter) => {
-            vec![Direction::Left, Direction::Right]
+            result.extend([Direction::Left, Direction::Right]);
         }
         (Direction::Left, Space::ForwardMirror) | (Direction::Right, Space::BackwardMirror) => {
-            vec![Direction::Down]
+            result.push(Direction::Down);
         }
         (Direction::Right, Space::ForwardMirror) | (Direction::Left, Space::BackwardMirror) => {
-            vec![Direction::Up]
+            result.push(Direction::Up);
         }
         (Direction::Up, Space::ForwardMirror) | (Direction::Down, Space::BackwardMirror) => {
-            vec![Direction::Right]
+            result.push(Direction::Right);
         }
         (Direction::Down, Space::ForwardMirror) | (Direction::Up, Space::BackwardMirror) => {
-            vec![Direction::Left]
+            result.push(Direction::Left);
         }
     }
+
+    result
 }
 
 impl_main!(p1: solve_part_1, p2: solve_part_2);
