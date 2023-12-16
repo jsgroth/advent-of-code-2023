@@ -3,7 +3,6 @@
 //! <https://adventofcode.com/2023/day/16>
 
 use advent_of_code_2023::impl_main;
-use arrayvec::ArrayVec;
 use std::cmp;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,19 +14,12 @@ enum Direction {
 }
 
 impl Direction {
-    fn di(self) -> i32 {
+    fn di_dj(self) -> (i32, i32) {
         match self {
-            Self::Up => -1,
-            Self::Down => 1,
-            Self::Left | Self::Right => 0,
-        }
-    }
-
-    fn dj(self) -> i32 {
-        match self {
-            Self::Left => -1,
-            Self::Right => 1,
-            Self::Up | Self::Down => 0,
+            Self::Up => (-1, 0),
+            Self::Down => (1, 0),
+            Self::Left => (0, -1),
+            Self::Right => (0, 1),
         }
     }
 }
@@ -85,45 +77,47 @@ fn solve_part_2(input: &str) -> u32 {
     max
 }
 
+type VisitedGrid = Vec<Vec<DirectionBits>>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct DirectionBits(u8);
+
+impl DirectionBits {
+    fn new() -> Self {
+        Self(0)
+    }
+
+    fn contains(self, direction: Direction) -> bool {
+        self.0 & direction_bit_for(direction) != 0
+    }
+
+    fn set(&mut self, direction: Direction) {
+        self.0 |= direction_bit_for(direction);
+    }
+
+    fn is_empty(self) -> bool {
+        self.0 == 0
+    }
+}
+
+fn direction_bit_for(direction: Direction) -> u8 {
+    match direction {
+        Direction::Left => 1 << 0,
+        Direction::Right => 1 << 1,
+        Direction::Up => 1 << 2,
+        Direction::Down => 1 << 3,
+    }
+}
+
 fn count_energized(
     grid: &[Vec<Space>],
     start_i: usize,
     start_j: usize,
     start_direction: Direction,
 ) -> u32 {
-    let mut visited: Vec<Vec<Vec<Direction>>> = vec![vec![vec![]; grid[0].len()]; grid.len()];
+    let mut visited: VisitedGrid = vec![vec![DirectionBits::new(); grid[0].len()]; grid.len()];
 
-    let initial_directions = determine_new_directions(start_direction, grid[start_i][start_j]);
-
-    let mut current_beams = Vec::new();
-    for initial_direction in initial_directions {
-        current_beams.push((start_i, start_j, initial_direction));
-        visited[start_i][start_j].push(initial_direction);
-    }
-
-    while let Some((i, j, direction)) = current_beams.pop() {
-        let i = i as i32;
-        let j = j as i32;
-        let di = direction.di();
-        let dj = direction.dj();
-
-        if !(0..grid.len() as i32).contains(&(i + di))
-            || !(0..grid[0].len() as i32).contains(&(j + dj))
-        {
-            continue;
-        }
-
-        let new_i = (i + di) as usize;
-        let new_j = (j + dj) as usize;
-        let new_directions = determine_new_directions(direction, grid[new_i][new_j]);
-
-        for new_direction in new_directions {
-            if !visited[new_i][new_j].contains(&new_direction) {
-                current_beams.push((new_i, new_j, new_direction));
-                visited[new_i][new_j].push(new_direction);
-            }
-        }
-    }
+    visit(grid, start_i as i32, start_j as i32, start_direction, &mut visited);
 
     visited
         .into_iter()
@@ -131,36 +125,44 @@ fn count_energized(
         .sum::<usize>() as u32
 }
 
-fn determine_new_directions(direction: Direction, space: Space) -> ArrayVec<Direction, 2> {
-    let mut result = ArrayVec::new();
-
-    match (direction, space) {
-        (_, Space::Empty)
-        | (Direction::Up | Direction::Down, Space::VerticalSplitter)
-        | (Direction::Left | Direction::Right, Space::HorizontalSplitter) => {
-            result.push(direction);
-        }
-        (Direction::Left | Direction::Right, Space::VerticalSplitter) => {
-            result.extend([Direction::Up, Direction::Down]);
-        }
-        (Direction::Up | Direction::Down, Space::HorizontalSplitter) => {
-            result.extend([Direction::Left, Direction::Right]);
-        }
-        (Direction::Left, Space::ForwardMirror) | (Direction::Right, Space::BackwardMirror) => {
-            result.push(Direction::Down);
-        }
-        (Direction::Right, Space::ForwardMirror) | (Direction::Left, Space::BackwardMirror) => {
-            result.push(Direction::Up);
-        }
-        (Direction::Up, Space::ForwardMirror) | (Direction::Down, Space::BackwardMirror) => {
-            result.push(Direction::Right);
-        }
-        (Direction::Down, Space::ForwardMirror) | (Direction::Up, Space::BackwardMirror) => {
-            result.push(Direction::Left);
-        }
+fn visit(grid: &[Vec<Space>], i: i32, j: i32, direction: Direction, visited: &mut VisitedGrid) {
+    if !(0..grid.len() as i32).contains(&i)
+        || !(0..grid[i as usize].len() as i32).contains(&j)
+        || visited[i as usize][j as usize].contains(direction)
+    {
+        return;
     }
+    visited[i as usize][j as usize].set(direction);
 
-    result
+    let space = grid[i as usize][j as usize];
+    if space == Space::HorizontalSplitter && matches!(direction, Direction::Up | Direction::Down) {
+        visit(grid, i, j - 1, Direction::Left, visited);
+        visit(grid, i, j + 1, Direction::Right, visited);
+    } else if space == Space::VerticalSplitter
+        && matches!(direction, Direction::Left | Direction::Right)
+    {
+        visit(grid, i - 1, j, Direction::Up, visited);
+        visit(grid, i + 1, j, Direction::Down, visited);
+    } else {
+        let new_direction =
+            match (space, direction) {
+                (Space::Empty | Space::HorizontalSplitter | Space::VerticalSplitter, _) => {
+                    direction
+                }
+                (Space::ForwardMirror, Direction::Right)
+                | (Space::BackwardMirror, Direction::Left) => Direction::Up,
+                (Space::ForwardMirror, Direction::Left)
+                | (Space::BackwardMirror, Direction::Right) => Direction::Down,
+                (Space::ForwardMirror, Direction::Up)
+                | (Space::BackwardMirror, Direction::Down) => Direction::Right,
+                (Space::ForwardMirror, Direction::Down)
+                | (Space::BackwardMirror, Direction::Up) => Direction::Left,
+            };
+
+        let (di, dj) = new_direction.di_dj();
+
+        visit(grid, i + di, j + dj, new_direction, visited);
+    }
 }
 
 impl_main!(p1: solve_part_1, p2: solve_part_2);
