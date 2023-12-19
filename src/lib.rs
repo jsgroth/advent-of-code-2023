@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt::{Display, Formatter};
 use std::time::Instant;
 use std::{env, fs};
 
@@ -14,7 +15,24 @@ pub fn read_input() -> Result<String, Box<dyn Error>> {
     Ok(contents)
 }
 
-fn time_fn_micros<T, F>(f: F) -> u128
+struct SolutionTimeMicros {
+    min: u128,
+    max: u128,
+    median: u128,
+    mean: u128,
+}
+
+impl Display for SolutionTimeMicros {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{{ min={}, median={}, mean={}, max={} }}",
+            self.min, self.median, self.mean, self.max
+        )
+    }
+}
+
+fn time_fn_micros<T, F>(f: F) -> SolutionTimeMicros
 where
     F: Fn() -> T,
 {
@@ -23,14 +41,23 @@ where
         f();
     }
 
-    let mut sum_micros = 0;
+    let mut times = Vec::new();
     for _ in 0..100 {
         let start_time = Instant::now();
         f();
-        sum_micros += Instant::now().duration_since(start_time).as_micros();
+        times.push(Instant::now().duration_since(start_time).as_micros());
     }
 
-    sum_micros / 100
+    times.sort();
+
+    let mean = times.iter().copied().sum::<u128>() / 100;
+
+    SolutionTimeMicros {
+        min: times[0],
+        max: *times.last().unwrap(),
+        median: (times[49] + times[50]) / 2,
+        mean,
+    }
 }
 
 pub fn time_solution<T1, T2, F1, F2>(f1: F1, f2: F2)
@@ -45,8 +72,8 @@ where
     let time1 = time_fn_micros(f1);
     let time2 = time_fn_micros(f2);
 
-    println!("Part 1: {time1} microseconds");
-    println!("Part 2: {time2} microseconds");
+    println!("Part 1 time (microseconds): {time1}");
+    println!("Part 2 time (microseconds): {time2}");
 }
 
 #[macro_export]
