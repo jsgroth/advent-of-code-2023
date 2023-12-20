@@ -5,6 +5,7 @@
 use advent_of_code_2023::impl_main;
 use rustc_hash::FxHashMap;
 use std::collections::VecDeque;
+use std::iter;
 use std::ops::{Add, AddAssign};
 use winnow::ascii::{alpha1, newline};
 use winnow::combinator::{alt, fail, opt, preceded, separated, separated_pair};
@@ -31,15 +32,14 @@ impl<'a> FlipFlop<'a> {
 }
 
 #[derive(Debug, Clone)]
-struct Conjunction<'a> {
+struct InputConjunction<'a> {
     name: &'a str,
-    inputs: FxHashMap<&'a str, Pulse>,
     outputs: Vec<&'a str>,
 }
 
-impl<'a> Conjunction<'a> {
+impl<'a> InputConjunction<'a> {
     fn new(name: &'a str, outputs: Vec<&'a str>) -> Self {
-        Self { name, inputs: FxHashMap::default(), outputs }
+        Self { name, outputs }
     }
 }
 
@@ -51,14 +51,14 @@ struct Broadcaster<'a> {
 #[derive(Debug, Clone)]
 enum InputNode<'a> {
     FlipFlop(FlipFlop<'a>),
-    Conjunction(Conjunction<'a>),
+    Conjunction(InputConjunction<'a>),
     Broadcaster(Broadcaster<'a>),
 }
 
 #[derive(Debug, Clone)]
 struct Input<'a> {
     flip_flops: Vec<FlipFlop<'a>>,
-    conjunctions: Vec<Conjunction<'a>>,
+    conjunctions: Vec<InputConjunction<'a>>,
     broadcaster: Broadcaster<'a>,
 }
 
@@ -79,7 +79,7 @@ fn parse_conjunction<'a>(input: &mut &'a str) -> PResult<InputNode<'a>> {
 
     let (name, outputs) = separated_pair(alpha1, " -> ", parse_outputs).parse_next(input)?;
 
-    Ok(InputNode::Conjunction(Conjunction::new(name, outputs)))
+    Ok(InputNode::Conjunction(InputConjunction::new(name, outputs)))
 }
 
 fn parse_broadcaster<'a>(input: &mut &'a str) -> PResult<InputNode<'a>> {
@@ -114,6 +114,12 @@ fn parse_input<'a>(input: &mut &'a str) -> PResult<Input<'a>> {
 }
 
 #[derive(Debug, Clone)]
+struct Conjunction<'a> {
+    inputs: FxHashMap<&'a str, Pulse>,
+    outputs: Vec<&'a str>,
+}
+
+#[derive(Debug, Clone)]
 enum Node<'a> {
     FlipFlop(FlipFlop<'a>),
     Conjunction(Conjunction<'a>),
@@ -129,29 +135,39 @@ impl<'a> Node<'a> {
 }
 
 fn build_node_map(input: Input<'_>) -> (FxHashMap<&str, Node<'_>>, Broadcaster<'_>) {
-    let mut map: FxHashMap<_, _> = input
+    let node_outputs: Vec<_> = input
         .flip_flops
-        .into_iter()
-        .map(|flip_flop| (flip_flop.name, Node::FlipFlop(flip_flop.clone())))
+        .iter()
+        .map(|flip_flop| (flip_flop.name, &flip_flop.outputs))
         .chain(
-            input
-                .conjunctions
-                .into_iter()
-                .map(|conjunction| (conjunction.name, Node::Conjunction(conjunction.clone()))),
+            input.conjunctions.iter().map(|conjunction| (conjunction.name, &conjunction.outputs)),
         )
+        .chain(iter::once(("broadcaster", &input.broadcaster.outputs)))
         .collect();
 
-    let mut node_inputs: Vec<_> =
-        map.iter().map(|(name, node)| (*name, node.outputs().to_vec())).collect();
-    node_inputs.push(("broadcaster", input.broadcaster.outputs.clone()));
-
-    for (input_name, output_names) in node_inputs {
-        for output_name in output_names {
-            if let Some(Node::Conjunction(conjunction)) = map.get_mut(output_name) {
-                conjunction.inputs.insert(input_name, Pulse::Low);
-            }
+    let mut name_to_inputs: FxHashMap<&str, Vec<&str>> = FxHashMap::default();
+    for (input_name, output_names) in node_outputs {
+        for &output_name in output_names {
+            name_to_inputs.entry(output_name).or_default().push(input_name);
         }
     }
+
+    let map: FxHashMap<_, _> = input
+        .flip_flops
+        .into_iter()
+        .map(|flip_flop| (flip_flop.name, Node::FlipFlop(flip_flop)))
+        .chain(input.conjunctions.into_iter().map(|conjunction| {
+            let inputs: FxHashMap<_, _> = name_to_inputs
+                .get(conjunction.name)
+                .map(|inputs| inputs.iter().map(|&input| (input, Pulse::Low)).collect())
+                .unwrap_or_default();
+
+            (
+                conjunction.name,
+                Node::Conjunction(Conjunction { inputs, outputs: conjunction.outputs }),
+            )
+        }))
+        .collect();
 
     (map, input.broadcaster)
 }
