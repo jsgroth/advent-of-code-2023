@@ -78,6 +78,9 @@ fn solve_part_2(input: &str) -> u64 {
     solve_part_2_inner(input, PART_2_STEPS)
 }
 
+// This solution assumes that:
+// - The map is square
+// - The top row, bottom row, left column, and right column are all empty
 fn solve_part_2_inner(input: &str, target_steps: u64) -> u64 {
     let Input { map, start } = parse_input(input);
 
