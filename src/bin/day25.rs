@@ -60,7 +60,7 @@ impl<'a> Graph<'a> {
 const MIN_CUT: u32 = 3;
 
 // Modified version of Edmonds-Karp that simply treats every edge as having a capacity of 1
-fn edmonds_karp<'a>(graph: &Graph<'a>, source: &'a str, sink: &str) -> u32 {
+fn edmonds_karp(graph: &Graph<'_>, source: &str, sink: &str) -> u32 {
     let mut flow_edges: FxHashSet<(&str, &str)> = FxHashSet::default();
     let mut flow = 0;
     loop {
