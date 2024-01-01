@@ -1,6 +1,22 @@
 //! Day 10: Pipe Maze
 //!
 //! <https://adventofcode.com/2023/day/10>
+//!
+//! Part 1: Starting from the `S`, traverse the grid to find all spaces that are part of the pipe loop. Use the pipe
+//! orientations to determine which directions are valid to move at each step. For the starting position, look at which
+//! of the 4 adjacent spaces contain pipes that are oriented towards the starting position.
+//!
+//! The loop length must be an even number of steps because it must take an even number of steps to get back to the
+//! starting position, so the distance to the farthest position is always half of the loop length.
+//!
+//! Part 2: Expand the map to "double resolution" by copying each pipe at `M[i,j]` in the original map into `M[2i,2j]`
+//! in the expanded map, and then filling in the odd-numbered spaces for pipes that are part of the loop. Pipes that are
+//! not part of the loop are not copied into the expanded map.
+//!
+//! Next, perform a floodfill in the expanded map to determine all spaces that are reachable from the map borders.
+//!
+//! The answer is the number of spaces that were not reached by the floodfill, are not part of the loop, and are present
+//! in the original-resolution map (i.e. i % 2 == 0 and j % 2 == 0).
 
 use advent_of_code_2023::impl_main;
 use rustc_hash::FxHashSet;

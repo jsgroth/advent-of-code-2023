@@ -1,6 +1,22 @@
 //! Day 20: Pulse Propagation
 //!
 //! <https://adventofcode.com/2023/day/20>
+//!
+//! Assumptions made:
+//! - The "rx" module has a single input which is a conjunction module
+//! - Each input to said conjunction module is essentially a counter that outputs a high pulse once every N low pulses
+//!   sent to the broadcaster (for different values of N) and a low pulse on every other broadcaster low pulse
+//! - Said N values are pairwise coprime
+//!
+//! Part 1: This is running a simulation. The simulation sends 1000 low pulses to the broadcaster in sequence, and each
+//! time it counts how many low pulses and high pulses are sent in total (including the initial low pulse to the
+//! broadcaster).
+//!
+//! Part 2: The answer is way too high to solve through simulation. Using the assumptions noted above (which were
+//! discovered by investigating the input), this first finds how many broadcaster low pulses it takes to make each
+//! counter module output a high pulse. "rx" will receive a low pulse when the conjunction module receives a high pulse
+//! from every counter input on the same broadcaster low pulse, which will first happen at the LCM of all of the
+//! counter N values (equivalent to the product since the N values are assumed to be pairwise coprime).
 
 use advent_of_code_2023::impl_main;
 use rustc_hash::FxHashMap;

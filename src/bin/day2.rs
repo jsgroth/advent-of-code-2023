@@ -1,6 +1,12 @@
 //! Day 2: Cube Conundrum
 //!
 //! <https://adventofcode.com/2023/day/2>
+//!
+//! Part 1: Most of the problem is input parsing. Once the input is parsed, simply sum the IDs of games where
+//! every revealed hand as at most 12 red cubes, at most 13 green cubes, and at most 14 blue cubes.
+//!
+//! Part 2: For each game, find the max number of cubes of each color across all reveals, treating absence of a color
+//! as 0.
 
 use advent_of_code_2023::impl_main;
 use winnow::ascii::{alpha1, digit1};

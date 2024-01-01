@@ -1,6 +1,13 @@
 //! Day 3: Gear Ratios
 //!
 //! <https://adventofcode.com/2023/day/3>
+//!
+//! Part 1: Pre-process the grid into another grid where each space contains whether or not that space is part of a
+//! number, and if it is then what that number is. Then, across all spaces that contain symbols, sum all adjacent
+//! numbers (taking care not to count any number twice).
+//!
+//! Part 2: Pre-process the grid as in part 1, then for each space that contains a '*' symbol that also has exactly
+//! 2 adjacent numbers, multiply those numbers together (and sum the products across the entire grid).
 
 use advent_of_code_2023::impl_main;
 use arrayvec::ArrayVec;

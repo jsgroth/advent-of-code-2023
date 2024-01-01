@@ -1,11 +1,56 @@
 //! Day 21: Step Counter
 //!
 //! <https://adventofcode.com/2023/day/21>
+//!
+//! Assumptions made:
+//! - The map is square
+//! - The topmost row, the bottommost row, the leftmost column, and the rightmost column are all completely empty
+//!
+//! Part 1: Do a breadth-first search to find all spaces that can be reached in N or fewer steps from the starting
+//! position. Each space can be reached in only an odd number of steps or an even number steps - 64 is even, so return
+//! the number of spaces touched that the elf can reach with an even number of steps from the starting position.
+//!
+//! Part 2: This is a doozy. It's worth noting that all of the example inputs use an even number of steps but the actual
+//! problem specifies an odd number of steps.
+//!
+//! First, do a BFS to determine how many steps it takes to reach each position in the map from the starting position.
+//! All steps on odd/even spaces (depending on input parity) are counted towards the answer.
+//!
+//! Next, count spaces touched in each direction moving horizontally or vertically from the center map:
+//! - Start by determining how many spaces it takes to reach each space on the appropriate border (e.g. the right border
+//!   for the maps to the left)
+//! - Continue moving across maps in the same direction until a repeat is detected in how many steps it takes to reach
+//!   each border space (normalized to the minimum to reach any space in the map). Count all odd/even spaces as
+//!   appropriate along the way
+//! - At this point, it is assumed that the first space entered is one of the corners, which means the elf will reach
+//!   a new map in this direction every map_len steps. Compute how many maps in this direction the elf will reach
+//! - Determine how many steps it takes to reach every space in the map from the repeated starting positions. For the
+//!   last maps the elf will reach, count how many odd/even spaces the elf can reach given the number of steps
+//!   remaining upon first entering that map, and continue moving backwards until there are enough remaining steps to
+//!   reach every space in the map
+//! - For the in-between maps where the elf can reach every space, simply count how many maps there are where the elf
+//!   touches every odd space and how many there are where the elf touches every even space
+//!
+//! Oof. Finally, count spaces that the elf can reach moving across maps diagonally:
+//! - Count how many steps it takes the elf to first reach the appropriate corner (e.g. the bottom-right corner for the
+//!   first map to the top-left), which will always be 2 plus the number of steps to reach the opposite corner in the
+//!   center map from the starting position
+//! - Since the outermost rows and columns are empty, after every map_len steps, the elf will reach a new N+1 maps
+//!   where N is the current number of maps on the diagonal. The elf starts in 1 map, then reaches 2 new maps after
+//!   map_len steps, then reaches 3 new maps after another map_len steps, etc.
+//! - Calculate how many maps out the elf will reach given the number of steps remaining upon first reaching the corner,
+//!   and then perform a computation similar to what was done in the horizontal/vertical directions. For the last
+//!   diagonals, count how many odd/even spaces the elf can reach with the number of steps remaining, and then multiply
+//!   that by the number of maps along that diagonal
+//! - Again, for the in-between maps where the elf can reach every space, count how many there are where the elf touches
+//!   every odd space and how many where the elf touches every even space (only multiplying by the number of maps along
+//!   the diagonal at each step)
+//!
+//! Very complicated, but it works and is fast enough (6-7 milliseconds on my computer).
 
 use advent_of_code_2023::impl_main;
 use std::cmp;
-use std::cmp::{Ordering, Reverse};
-use std::collections::BinaryHeap;
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Point {
@@ -77,9 +122,6 @@ fn solve_part_2(input: &str) -> u64 {
     solve_part_2_inner(input, PART_2_STEPS)
 }
 
-// This solution assumes that:
-// - The map is square
-// - The top row, bottom row, left column, and right column are all empty
 fn solve_part_2_inner(input: &str, target_steps: u64) -> u64 {
     let Input { map, start } = parse_input(input);
 
@@ -88,19 +130,8 @@ fn solve_part_2_inner(input: &str, target_steps: u64) -> u64 {
         &[StartPosition { i: start.i as usize, j: start.j as usize, step: 0 }],
     );
 
+    // Center
     let mut count = count_positions(&center_step_map, target_steps, target_steps % 2);
-
-    // Top left
-    count += count_corner(&map, &center_step_map, target_steps, map.len() - 1, map.len() - 1);
-
-    // Top right
-    count += count_corner(&map, &center_step_map, target_steps, map.len() - 1, 0);
-
-    // Bottom left
-    count += count_corner(&map, &center_step_map, target_steps, 0, map.len() - 1);
-
-    // Bottom right
-    count += count_corner(&map, &center_step_map, target_steps, 0, 0);
 
     // Left
     count += count_edge(&map, &center_step_map, target_steps, |step_map| {
@@ -129,6 +160,18 @@ fn solve_part_2_inner(input: &str, target_steps: u64) -> u64 {
             .map(|j| StartPosition { i: 0, j, step: step_map[map.len() - 1][j] + 1 })
             .collect()
     });
+
+    // Top left
+    count += count_corner(&map, &center_step_map, target_steps, map.len() - 1, map.len() - 1);
+
+    // Top right
+    count += count_corner(&map, &center_step_map, target_steps, map.len() - 1, 0);
+
+    // Bottom left
+    count += count_corner(&map, &center_step_map, target_steps, 0, map.len() - 1);
+
+    // Bottom right
+    count += count_corner(&map, &center_step_map, target_steps, 0, 0);
 
     count
 }
@@ -279,34 +322,22 @@ fn count_corner(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct HeapEntry {
+struct QueueEntry {
     i: usize,
     j: usize,
     steps: u64,
 }
 
-impl PartialOrd for HeapEntry {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for HeapEntry {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.steps.cmp(&other.steps).then(self.i.cmp(&other.i)).then(self.j.cmp(&other.j))
-    }
-}
-
 fn build_step_map(map: &[Vec<Space>], start_positions: &[StartPosition]) -> (Vec<Vec<u64>>, u64) {
     let mut step_map = vec![vec![u64::MAX; map.len()]; map.len()];
 
-    let mut heap = BinaryHeap::new();
+    let mut queue = VecDeque::new();
     for position in start_positions {
-        heap.push(Reverse(HeapEntry { i: position.i, j: position.j, steps: position.step }));
+        queue.push_back(QueueEntry { i: position.i, j: position.j, steps: position.step });
     }
 
     let mut max_steps = u64::MIN;
-    while let Some(Reverse(HeapEntry { i, j, steps })) = heap.pop() {
+    while let Some(QueueEntry { i, j, steps }) = queue.pop_front() {
         if step_map[i][j] < steps {
             continue;
         }
@@ -327,7 +358,7 @@ fn build_step_map(map: &[Vec<Space>], start_positions: &[StartPosition]) -> (Vec
                 let new_steps = steps + 1;
                 if step_map[new_i][new_j] > new_steps {
                     step_map[new_i][new_j] = new_steps;
-                    heap.push(Reverse(HeapEntry { i: new_i, j: new_j, steps: new_steps }));
+                    queue.push_back(QueueEntry { i: new_i, j: new_j, steps: new_steps });
                 }
             }
         }

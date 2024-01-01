@@ -1,6 +1,13 @@
 //! Day 1: Trebuchet?!
 //!
 //! <https://adventofcode.com/2023/day/1>
+//!
+//! Part 1: Simply search for the first and last ASCII digit in each line and "parse" them into a 2-digit number.
+//! Finding the last digit is equivalent to finding the first digit in reverse.
+//!
+//! Part 2: Similar to the first, but instead of searching only for ASCII digits, search for either an ASCII digit or
+//! the word "one", "two", etc. Finding the last digit is still equivalent to finding the first digit in reverse because
+//! this part loops over character indices rather than characters.
 
 use advent_of_code_2023::impl_main;
 

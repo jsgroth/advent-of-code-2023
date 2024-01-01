@@ -1,6 +1,16 @@
 //! Day 7: Camel Cards
 //!
 //! <https://adventofcode.com/2023/day/7>
+//!
+//! Part 1: For each hand, compute the card count of each card in that hand, sort the counts descending, and then use
+//! the highest 2 counts to uniquely determine the hand type. Sort the hands by hand type ascending, using
+//! lexicographical sort order to break ties. Once the hands are sorted, each hand's rank is equal to its index in
+//! the sorted list plus 1.
+//!
+//! Part 2: Similar to part 1, but ignore jacks when counting the cards in each hand, and use the highest 2 card counts
+//! combined with the jack/joker count to uniquely determine the best possible hand type taking jacks/jokers into account.
+//! When sorting the list, treat jacks/jokers as having a value of 1 when doing the lexicographical tie-breaker sort so
+//! that jacks/jokers sort below all other cards.
 
 use advent_of_code_2023::impl_main;
 use winnow::ascii::{digit1, newline, space1};

@@ -1,6 +1,12 @@
 //! Day 15: Lens Library
 //!
 //! <https://adventofcode.com/2023/day/15>
+//!
+//! Part 1: Simply apply the given hash algorithm to each string in the comma-separated input and sum the results.
+//!
+//! Part 2: As the problem description not-so-subtly implies, this is essentially just implementing a hash map with a
+//! fixed array size (256) and using chaining for hash collisions. Each xx=N command is insert(xx, N), and each
+//! xx=- command is remove(xx).
 
 use advent_of_code_2023::impl_main;
 use winnow::ascii::{alpha1, digit1, newline};

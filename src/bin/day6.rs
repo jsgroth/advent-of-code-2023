@@ -1,6 +1,14 @@
 //! Day 6: Wait For It
 //!
 //! <https://adventofcode.com/2023/day/6>
+//!
+//! Part 1: The number of solutions is equal to the number of integer `x` values that satisfy `(t - x) * x > d`, where
+//! `t` is the race time and `d` is the distance to beat. Use the quadratic formula to find the two values of `x` such
+//! that `(t - x) * x = d`, and then use floor/ceil + increment/decrement to adjust to the nearest integer values of `x`
+//! such that the distance traveled is strictly greater than `d`.
+//!
+//! Part 2: Same as part 1 only parsing the input as a single larger time+distance instead of multiple time+distance
+//! pairs.
 
 use advent_of_code_2023::impl_main;
 

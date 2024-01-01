@@ -1,6 +1,13 @@
 //! Day 16: The Floor Will Be Lava
 //!
 //! <https://adventofcode.com/2023/day/16>
+//!
+//! Part 1: Path tracing, with the twist that certain spaces cause the path to split in two and move in both directions
+//! simultaneously. In order to avoid possible infinite loops, the algorithm short circuits if a given tile has already
+//! been visited while facing the given direction.
+//!
+//! Part 2: This is just a brute force search finding the max number of spaces touched across every possible starting
+//! position and direction.
 
 use advent_of_code_2023::impl_main;
 use std::cmp;

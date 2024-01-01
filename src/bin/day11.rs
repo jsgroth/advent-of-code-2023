@@ -1,6 +1,16 @@
 //! Day 11: Cosmic Expansion
 //!
 //! <https://adventofcode.com/2023/day/11>
+//!
+//! Part 1: Instead of literally expanding the map, pre-process the map to determine which rows and columns do not
+//! contain any galaxies and need to be expanded. Then, compute each galaxy's row and column in the expanded map:
+//! Iterate through the rows then columns in order while keeping track of the current row and column in the expanded map,
+//! adding the expansion size instead of 1 at any row/column that does not contain any galaxies.
+//!
+//! Once the expanded row/column for each galaxy is known, the shortest path between a given pair of galaxies is simply
+//! the Manhattan distance between the two points.
+//!
+//! Part 2: Exactly the same as part 1 but with an expansion size of 1,000,000 instead of 2.
 
 use advent_of_code_2023::impl_main;
 use rustc_hash::FxHashSet;

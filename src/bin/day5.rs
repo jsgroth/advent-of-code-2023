@@ -1,6 +1,25 @@
 //! Day 5: If You Give A Seed A Fertilizer
 //!
 //! <https://adventofcode.com/2023/day/5>
+//!
+//! Assumptions made:
+//! - The graph of maps is a straight line from "seed" to "location", and the maps are in order in the input
+//!
+//! Part 1: For each seed value in the input, follow the maps to determine the location value of that seed, and take
+//! the min location value across all seeds.
+//!
+//! Part 2: Process the seeds as ranges to avoid the solution taking an extremely long time.
+//!
+//! First, sort each map by starting value so that it's possible to iterate over the map ranges in order.
+//!
+//! Then, for a given seed range and map, do the following for each map range, while tracking the minimum location value
+//! and while adjusting seed_start after each iteration:
+//! - If part of the seed range is before the next map range, values in [seed_start, map_start) go to the next
+//!   fertilizer type without transformation
+//! - If part of the seed range overlaps the next map range, values in [max(seed_start, map_start), min(seed_end, map_end))
+//!   are transformed according to the map rule
+//! At the end, if part of the seed range is after the last map range, values in [seed_start, seed_end) go to the next
+//! fertilizer type without transformation
 
 use advent_of_code_2023::impl_main;
 use std::cmp;
@@ -65,12 +84,12 @@ fn solve_part_1(input: &str) -> i64 {
         .seeds
         .iter()
         .copied()
-        .map(|seed| find_min_location_part_1(&input, 0, seed))
+        .map(|seed| find_seed_location(&input, 0, seed))
         .min()
         .expect("No seeds in input")
 }
 
-fn find_min_location_part_1(input: &Input, i: usize, value: i64) -> i64 {
+fn find_seed_location(input: &Input, i: usize, value: i64) -> i64 {
     if i == input.maps.len() {
         return value;
     }
@@ -79,14 +98,10 @@ fn find_min_location_part_1(input: &Input, i: usize, value: i64) -> i64 {
         .iter()
         .find_map(|range| {
             (range.source_start..range.source_start + range.length).contains(&value).then(|| {
-                find_min_location_part_1(
-                    input,
-                    i + 1,
-                    value + range.dest_start - range.source_start,
-                )
+                find_seed_location(input, i + 1, value + range.dest_start - range.source_start)
             })
         })
-        .unwrap_or_else(|| find_min_location_part_1(input, i + 1, value))
+        .unwrap_or_else(|| find_seed_location(input, i + 1, value))
 }
 
 fn solve_part_2(input: &str) -> i64 {
@@ -101,13 +116,13 @@ fn solve_part_2(input: &str) -> i64 {
         .chunks_exact(2)
         .map(|chunk| {
             let &[start, length] = chunk else { unreachable!("chunks_exact(2)") };
-            find_min_location_part_2(&input, 0, start, length)
+            find_min_location(&input, 0, start, length)
         })
         .min()
         .expect("No seeds in input")
 }
 
-fn find_min_location_part_2(input: &Input, i: usize, start: i64, length: i64) -> i64 {
+fn find_min_location(input: &Input, i: usize, start: i64, length: i64) -> i64 {
     if i == input.maps.len() {
         return start;
     }
@@ -120,7 +135,7 @@ fn find_min_location_part_2(input: &Input, i: usize, start: i64, length: i64) ->
         if start < range.source_start {
             // Part of this range is before the next range in the map; pass values through directly
             let before_len = cmp::min(range.source_start - start, length);
-            min = cmp::min(min, find_min_location_part_2(input, i + 1, start, before_len));
+            min = cmp::min(min, find_min_location(input, i + 1, start, before_len));
 
             length -= before_len;
             start += before_len;
@@ -136,7 +151,7 @@ fn find_min_location_part_2(input: &Input, i: usize, start: i64, length: i64) ->
             let end = start + length;
             let overlap_len = cmp::min(end, range_end) - start;
             let overlap_start = range.dest_start + (start - range.source_start);
-            min = cmp::min(min, find_min_location_part_2(input, i + 1, overlap_start, overlap_len));
+            min = cmp::min(min, find_min_location(input, i + 1, overlap_start, overlap_len));
 
             length -= overlap_len;
             start += overlap_len;
@@ -149,7 +164,7 @@ fn find_min_location_part_2(input: &Input, i: usize, start: i64, length: i64) ->
 
     if length != 0 {
         // Part of this range is after the last range; pass values through directly
-        min = cmp::min(min, find_min_location_part_2(input, i + 1, start, length));
+        min = cmp::min(min, find_min_location(input, i + 1, start, length));
     }
 
     min

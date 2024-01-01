@@ -1,6 +1,18 @@
 //! Day 23: A Long Walk
 //!
 //! <https://adventofcode.com/2023/day/23>
+//!
+//! Part 1: Exhaustively search all possible paths through the maze using DFS and record the length of the longest path.
+//!
+//! Part 2: Exhaustively searching no longer works because removing the slope restriction dramatically increases the
+//! size of the search space. Instead, start by converting the maze into a graph which has nodes for the start position,
+//! the end position, and each space which at least 3 adjacent open spaces. Two nodes are connected by an edge if there
+//! is a path between the nodes that does not pass through any other nodes, and the weight of the edge is equal to the
+//! length of the path.
+//!
+//! Once this graph is constructed, exhaustively search the graph for all possible paths from the start node to the end
+//! node (which is multiple orders of magnitude faster than doing the same thing in the maze directly) and record the
+//! length of the longest path.
 
 use advent_of_code_2023::impl_main;
 use rustc_hash::{FxHashMap, FxHashSet};

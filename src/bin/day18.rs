@@ -1,6 +1,25 @@
 //! Day 18: Lavaduct Lagoon
 //!
 //! <https://adventofcode.com/2023/day/18>
+//!
+//! Part 1: This uses a combination of range splitting and ray tracing (overkill for part 1 but necessary for part 2).
+//! The algorithm starts with a vertical range that spans from the topmost row with a hole to the bottommost row, and it
+//! traces horizontal rays in bulk to count how many spaces are inside the trench.
+//!
+//! The input is pre-processed into vertical line segments where each segment contains the two endpoints and the
+//! direction. The line segments are sorted by X value and then processed in order for each range, while tracking
+//! whether each range is currently inside or outside the trench:
+//! - If the range is inside the trench, add the number of spaces crossed (range Y length * X length since last line segment)
+//! - If part of the range is north or south of the line segment, have that part of the range keep going as-is
+//! - If the range includes either or both line segment endpoints, start tracing a single horizontal ray aligned with
+//!   the endpoint. If the next vertical line segment is in the same direction is this one, invert inside/outside status
+//! - If the range overlaps the line segment (excluding the endpoints), invert inside/outside status after passing the
+//!   line segment
+//! Spaces with holes are always counted regardless of inside/outside status.
+//!
+//! Part 2: Exact same algorithm as part 1, but parsing the path lengths and directions out of the "hex colors" instead
+//! of using the part 1 directions and lengths (which expands the size of the trench to the point that brute force
+//! counting is not feasible).
 
 use advent_of_code_2023::impl_main;
 use std::cmp;

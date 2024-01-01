@@ -1,6 +1,13 @@
 //! Day 9: Mirage Maintenance
 //!
 //! <https://adventofcode.com/2023/day/9>
+//!
+//! Part 1: Nice recursive solution. At each step, find the difference between each adjacent pair of numbers, stopping
+//! recursion when all numbers are 0. When backing out, compute the next number in the sequence by adding the last
+//! difference to the last number.
+//!
+//! Part 2: Same as part 1, but instead of adding the difference to the last number, subtract the difference from the
+//! first number.
 
 use advent_of_code_2023::impl_main;
 

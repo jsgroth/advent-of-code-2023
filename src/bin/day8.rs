@@ -1,6 +1,24 @@
 //! Day 8: Haunted Wasteland
 //!
 //! <https://adventofcode.com/2023/day/8>
+//!
+//! Assumptions made:
+//! - For each node name that ends in 'A', following the directions starting at that node will eventually result in a
+//!   cycle of length C that begins at step N. Further, the cycle contains exactly one node with a name ending in 'Z'
+//!   at step (C - N) within the cycle, which means that the path lands on that node at global steps C, 2C, 3C, etc.
+//!   The C and N values are not assumed to be identical between starting nodes.
+//!
+//! Part 1: Simple directed graph traversal where each node has exactly 2 outgoing edges and the L/R direction specifies
+//! which edge to take at each step. Start at "AAA" and follow the input directions in a cycle until you reach "ZZZ",
+//! counting how many steps it takes to get there.
+//!
+//! Part 2: The answer is too large for a naive solution. Given the assumption noted above, search for the cycle in each
+//! path by counting how many steps it takes for each path to first reach a node name ending in 'Z'. Given that each
+//! path lands on a node ending in 'Z' at steps C, 2C, 3C, etc., the first step where _all_ paths land on a node ending
+//! in 'Z' is the the least common multiple of all of the cycle lengths.
+//!
+//! LCM is associative, so the LCM across all cycle lengths is computed by reducing over the list of cycle lengths and
+//! computing pairwise LCMs (using Euclid's algorithm to calculate greatest common divisor).
 
 use advent_of_code_2023::impl_main;
 use rustc_hash::FxHashMap;
@@ -98,16 +116,10 @@ fn solve_part_2(input: &str) -> u64 {
     let node_map = nodes_to_map(&input.nodes);
 
     let mut current: Vec<_> = input.nodes.iter().filter(|node| node.name.ends_with('A')).collect();
-    let mut visited_to_step: Vec<FxHashMap<(u32, &str), u64>> =
-        vec![FxHashMap::default(); current.len()];
-    let mut cycle_len: Vec<Option<u64>> = vec![None; current.len()];
-
-    for (node, visited_map) in current.iter().zip(&mut visited_to_step) {
-        visited_map.insert((0, node.name), 0);
-    }
+    let mut first_z_step: FxHashMap<&str, u64> = FxHashMap::default();
 
     let mut steps = 0;
-    for (direction_idx, &direction) in input.directions.iter().enumerate().cycle() {
+    for &direction in input.directions.iter().cycle() {
         for node in &mut current {
             match direction {
                 Direction::Left => {
@@ -124,35 +136,22 @@ fn solve_part_2(input: &str) -> u64 {
             return steps;
         }
 
-        for (node_idx, node) in current.iter().enumerate() {
-            if cycle_len[node_idx].is_none() {
-                if let Some(&prev_steps) =
-                    visited_to_step[node_idx].get(&(direction_idx as u32, node.name))
-                {
-                    cycle_len[node_idx] = Some(steps - prev_steps);
-                } else {
-                    visited_to_step[node_idx].insert((direction_idx as u32, node.name), steps);
-                }
+        for node in &current {
+            if node.name.ends_with('Z') && !first_z_step.contains_key(node.name) {
+                first_z_step.insert(node.name, steps);
             }
         }
 
-        // This takes advantage of a property of the (actual) input.
-        // For each node i that ends in 'A', following the directions will eventually result in a cycle of length C[i]
-        // that begins after N[i] steps.
-        // It just so happens that for each of these cycles, the cycle lands on a node that ends in 'Z' at
-        // step C[i] - N[i], which causes the math to work out such that the minimum step where every node ends in
-        // 'Z' is the least common multiple of all of the cycle lengths C[i].
-        if cycle_len.iter().all(Option::is_some) {
-            let nums: Vec<_> = cycle_len.iter().copied().map(Option::unwrap).collect();
-            return lcm(&nums);
+        if first_z_step.len() == current.len() {
+            return lcm(first_z_step.values().copied());
         }
     }
 
     unreachable!("Above loop is iterating over an infinite iterator and never breaks, only returns")
 }
 
-fn lcm(nums: &[u64]) -> u64 {
-    nums.iter().copied().reduce(|a, b| a * b / gcd(a, b)).expect("No cycle lengths in LCM input")
+fn lcm(nums: impl Iterator<Item = u64>) -> u64 {
+    nums.reduce(|a, b| a * b / gcd(a, b)).expect("No cycle lengths in LCM input")
 }
 
 fn gcd(a: u64, b: u64) -> u64 {

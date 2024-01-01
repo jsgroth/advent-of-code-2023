@@ -1,6 +1,17 @@
 //! Day 17: Clumsy Crucible
 //!
 //! <https://adventofcode.com/2023/day/17>
+//!
+//! Part 1: Use Dijkstra's algorithm to find the shortest path from the top-left corner to the bottom-right corner, while
+//! keeping track of the number of spaces moved in the current direction in order to follow the restriction that the
+//! crucible can't move more than three consecutive steps in a same direction. The map is treated as a graph where each
+//! space is a node that has outgoing edges to each adjacent space that the crucible can legally move to, with the
+//! weight of each edge set to the additional heat loss incurred by the move.
+//!
+//! Part 2: Essentially the same algorithm as part 1 but with additional restrictions on legal moves. These additional
+//! restrictions also mean that simply reaching the bottom-right corner is not necessarily a solution - the crucible
+//! must have moved at least 4 steps in the same direction when it reaches the destination or else it will not be able
+//! to stop.
 
 use advent_of_code_2023::impl_main;
 use rustc_hash::FxHashMap;

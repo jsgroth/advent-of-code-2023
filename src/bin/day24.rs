@@ -1,6 +1,21 @@
 //! Day 24: Never Tell Me The Odds
 //!
 //! <https://adventofcode.com/2023/day/24>
+//!
+//! Part 1: For each pair of hailstones, create a 2x3 matrix representing a system of linear equations where the two variables
+//! are the times that the respective hailstones reach the intersection point (considering X/Y only). Use Gaussian
+//! elimination to solve for the two times (or to determine that there is no solution) and count the intersection if both
+//! times are positive and the X/Y intersection coordinates are within range.
+//!
+//! Part 2: This solution is bad (extremely slow). It brute force searches over all possible rock velocities, starting from
+//! the lowest velocities and gradually increasing. For each rock velocity, it creates a system of 9 linear equations where
+//! the variables are:
+//! - The X, Y, and Z coordinates of the rock at time 0 (the answer to the problem)
+//! - The times that the rock collides with the first 3 hailstones
+//! The equations themselves are for when the rock matches the X, Y, and Z coordinates of each of the first 3 hailstones.
+//!
+//! It then uses Gaussian elimination to either find a solution or to determine that there is no solution. If a solution
+//! is found, it is assumed that this is the only valid solution to the problem.
 
 use advent_of_code_2023::impl_main;
 use fixed::types::I64F64;

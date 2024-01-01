@@ -1,6 +1,16 @@
 //! Day 4: Scratchcards
 //!
 //! <https://adventofcode.com/2023/day/4>
+//!
+//! Part 1: Since the first match is worth 1 point and each successive match doubles the score, the total score for
+//! each hand is equal to 2^(N-1) where N is the number of matches (or 0 if N=0).
+//!
+//! Part 2: The result for each card number will always be the same regardless of how many cards of that number you
+//! have, so instead of processing each card individually, process each card number in sequence while keeping track of
+//! how many of that card number you have (starting with 1 of each card). After each win, add the current card number's
+//! count to the counts of all card numbers that you won.
+//!
+//! Once you've gone through all cards, simply sum the number of each card number that you have.
 
 use advent_of_code_2023::impl_main;
 use rustc_hash::FxHashSet;

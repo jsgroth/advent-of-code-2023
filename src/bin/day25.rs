@@ -1,6 +1,11 @@
 //! Day 25: Snowverload
 //!
 //! <https://adventofcode.com/2023/day/25>
+//!
+//! This is treated as a variant of the minimum cut graph problem. The value of the min cut is known (3), so instead
+//! of finding the min cut, repeatedly use the Edmonds-Karp algorithm to find a pair of nodes where the max flow / min cut
+//! between the nodes is equal to 3, and then do a basic BFS to count the number of nodes that are reachable from the source
+//! after the network is saturated with max flow between the two nodes.
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cmp;

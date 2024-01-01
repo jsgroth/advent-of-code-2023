@@ -1,7 +1,19 @@
 //! Day 22: Sand Slabs
 //!
 //! <https://adventofcode.com/2023/day/22>
-
+//!
+//! Part 1: A brick can be dropped if it is oriented along the X or Y axis and every space below one of its blocks is
+//! empty, or if it is oriented along the Z axis and the space below its lowest block is empty. All spaces at Z=0 are
+//! treated as non-empty.
+//!
+//! This solution checks each brick individually after dropping the bricks as far as possible: Clone the map, delete
+//! the blocks for the given brick, and then see if any other bricks can be dropped.
+//!
+//! Open/full spaces are tracked using a simple 3D grid.
+//!
+//! Part 2: Basically the same as part 1, but sum up the number of bricks that drop after each disintegration instead of
+//! counting the number of bricks that cause no other bricks to drop.
+//!
 use advent_of_code_2023::impl_main;
 use rustc_hash::FxHashSet;
 use std::cmp;
@@ -60,9 +72,7 @@ impl Map {
         ]);
 
         for brick in bricks {
-            for point in brick.points() {
-                map.set(point, true);
-            }
+            brick.for_each_point(|point| map.set(point, true));
         }
 
         map
@@ -81,19 +91,28 @@ impl Map {
 struct Brick(Point, Point);
 
 impl Brick {
-    fn points(&self) -> Vec<Point> {
+    fn for_each_point<T, F>(&self, mut f: F)
+    where
+        F: FnMut(Point) -> T,
+    {
         if self.0.x != self.1.x {
             let min_x = cmp::min(self.0.x, self.1.x);
             let max_x = cmp::max(self.0.x, self.1.x);
-            (min_x..=max_x).map(|x| Point::new(x, self.0.y, self.0.z)).collect()
+            for x in min_x..=max_x {
+                f(Point::new(x, self.0.y, self.0.z));
+            }
         } else if self.0.y != self.1.y {
             let min_y = cmp::min(self.0.y, self.1.y);
             let max_y = cmp::max(self.0.y, self.1.y);
-            (min_y..=max_y).map(|y| Point::new(self.0.x, y, self.0.z)).collect()
+            for y in min_y..=max_y {
+                f(Point::new(self.0.x, y, self.0.z));
+            }
         } else {
             let min_z = cmp::min(self.0.z, self.1.z);
             let max_z = cmp::max(self.0.z, self.1.z);
-            (min_z..=max_z).map(|z| Point::new(self.0.x, self.0.y, z)).collect()
+            for z in min_z..=max_z {
+                f(Point::new(self.0.x, self.0.y, z));
+            }
         }
     }
 
@@ -109,7 +128,11 @@ impl Brick {
             !map.get(Point::new(self.0.x, self.0.y, min_z) - Point::new(0, 0, 1))
         } else {
             // Brick is along x-axis or y-axis; check all points below
-            self.points().into_iter().all(|point| !map.get(point - Point::new(0, 0, 1)))
+            let mut space_below = true;
+            self.for_each_point(|point| {
+                space_below &= !map.get(point - Point::new(0, 0, 1));
+            });
+            space_below
         }
     }
 
@@ -150,9 +173,7 @@ fn solve_part_1(input: &str) -> u32 {
     let mut count = 0;
     for brick in &bricks {
         let mut disintegrated_map = map.clone();
-        for point in brick.points() {
-            disintegrated_map.set(point, false)
-        }
+        brick.for_each_point(|point| disintegrated_map.set(point, false));
 
         if drop_bricks(&mut bricks.clone(), &mut disintegrated_map) == 0 {
             count += 1;
@@ -175,17 +196,13 @@ fn drop_bricks(bricks: &mut [Brick], map: &mut Map) -> u32 {
             dropped_bricks.insert(i);
             dropped_any = true;
 
-            for point in brick.points() {
-                map.set(point, false);
-            }
+            brick.for_each_point(|point| map.set(point, false));
 
             while brick.can_drop(map) {
                 brick.drop();
             }
 
-            for point in brick.points() {
-                map.set(point, true);
-            }
+            brick.for_each_point(|point| map.set(point, true));
         }
 
         if !dropped_any {
@@ -206,9 +223,7 @@ fn solve_part_2(input: &str) -> u32 {
     let mut count = 0;
     for brick in &bricks {
         let mut disintegrated_map = map.clone();
-        for point in brick.points() {
-            disintegrated_map.set(point, false);
-        }
+        brick.for_each_point(|point| disintegrated_map.set(point, false));
 
         count += drop_bricks(&mut bricks.clone(), &mut disintegrated_map);
     }

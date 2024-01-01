@@ -1,6 +1,20 @@
 //! Day 12: Hot Springs
 //!
 //! <https://adventofcode.com/2023/day/12>
+//!
+//! Part 1: Uses dynamic programming (not necessary for part 1 but is necessary for part 2). The cache key is the pair
+//! of (# springs remaining, # damage groups remaining).
+//!
+//! Each step processes the first damage group. If there are no damage groups remaining, there is exactly 1 solution
+//! if there are no damaged springs remaining, and 0 solutions if there are damaged springs remaining.
+//!
+//! Otherwise, the algorithm determines all possible positions where the first damage group can be placed without
+//! skipping any damaged springs and while leaving enough room for the remaining damage groups, and it recursively
+//! computes the number of solutions for each of those positions and sums them.
+//!
+//! Part 2: Uses the same algorithm as part 1, simply pre-processing the input to apply the transformation specified
+//! in the problem description (which massively expands the search space to the point that a brute force solution won't
+//! work).
 
 use advent_of_code_2023::impl_main;
 use rustc_hash::FxHashMap;

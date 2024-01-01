@@ -1,6 +1,21 @@
 //! Day 19: Aplenty
 //!
 //! <https://adventofcode.com/2023/day/19>
+//!
+//! Assumptions made:
+//! - There are no infinite loops in the workflows
+//!
+//! Part 1: This is simply parsing the input and then simulating each part through the workflows to determine whether
+//! it is ultimately accepted or rejected, starting at the "in" workflow.
+//!
+//! Part 2: This is running ranges through the simulation rather than parts. At the start, each field is allowed to have
+//! a value ranging from 1 to 4000. At each workflow step, the range for that field gets split into two: the part of the
+//! range that meets the condition and branches to the other workflow, and the part of the range that fails to meet
+//! the condition and continues in the current workflow. If either sub-range is empty then there are no possible Accepts
+//! down that path and the simulation does not proceed that way.
+//!
+//! When an Accept is reached, the number of valid part values down that path is equal to the product of the range
+//! length for each of the 4 fields.
 
 use advent_of_code_2023::impl_main;
 use rustc_hash::FxHashMap;

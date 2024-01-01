@@ -1,6 +1,18 @@
 //! Day 13: Point of Incidence
 //!
 //! <https://adventofcode.com/2023/day/13>
+//!
+//! Assumptions made:
+//! - Each map contains exactly one valid reflection line
+//! - Each map contains exactly one reflection line such that the number of differences between the two sides is
+//!   exactly 1
+//!
+//! Part 1: Iterate through all possible reflection lines, both horizontal and vertical, and find the first one that
+//! creates a valid reflection. A reflection line is valid if there is at least one row/column on each side of the line
+//! and the rows/columns on each side moving outwards are identical, up until either side reaches the edge of the map.
+//!
+//! Part 2: Same as part 1, but instead of checking if the two sides are identical, check if there is exactly 1
+//! space different between the two sides.
 
 use advent_of_code_2023::impl_main;
 
