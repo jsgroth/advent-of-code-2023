@@ -3,6 +3,7 @@
 //! <https://adventofcode.com/2023/day/25>
 
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::cmp;
 use std::collections::VecDeque;
 use std::error::Error;
 use winnow::ascii::{alpha1, newline};
@@ -31,9 +32,31 @@ fn parse_input<'a>(input: &mut &'a str) -> PResult<Vec<InputLine<'a>>> {
     Ok(lines)
 }
 
+#[derive(Debug, Clone)]
+struct Edge {
+    flow: i32,
+    capacity: i32,
+}
+
+impl Edge {
+    fn new() -> Self {
+        Self { flow: 0, capacity: 1 }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 struct Node<'a> {
-    edges: Vec<&'a str>,
+    edges: FxHashMap<&'a str, Edge>,
+}
+
+impl<'a> Node<'a> {
+    fn edge(&self, edge_name: &str) -> &Edge {
+        self.edges.get(edge_name).unwrap()
+    }
+
+    fn edge_mut(&mut self, edge_name: &str) -> &mut Edge {
+        self.edges.get_mut(edge_name).unwrap()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -47,21 +70,27 @@ impl<'a> Graph<'a> {
 
         for line in input {
             for &edge in &line.edges {
-                nodes.entry(line.name).or_default().edges.push(edge);
-                nodes.entry(edge).or_default().edges.push(line.name);
+                nodes.entry(line.name).or_default().edges.insert(edge, Edge::new());
+                nodes.entry(edge).or_default().edges.insert(line.name, Edge::new());
             }
         }
 
         Self { nodes }
+    }
+
+    fn node(&self, node_name: &str) -> &Node<'a> {
+        self.nodes.get(node_name).unwrap()
+    }
+
+    fn node_mut(&mut self, node_name: &str) -> &mut Node<'a> {
+        self.nodes.get_mut(node_name).unwrap()
     }
 }
 
 // Guaranteed by problem description
 const MIN_CUT: u32 = 3;
 
-// Modified version of Edmonds-Karp that simply treats every edge as having a capacity of 1
-fn edmonds_karp(graph: &Graph<'_>, source: &str, sink: &str) -> u32 {
-    let mut flow_edges: FxHashSet<(&str, &str)> = FxHashSet::default();
+fn edmonds_karp(graph: &mut Graph<'_>, source: &str, sink: &str) -> u32 {
     let mut flow = 0;
     loop {
         let mut queue = VecDeque::new();
@@ -72,19 +101,19 @@ fn edmonds_karp(graph: &Graph<'_>, source: &str, sink: &str) -> u32 {
         let mut path_found = false;
         'outer: while let Some(node_name) = queue.pop_front() {
             let node = graph.nodes.get(&node_name).unwrap();
-            for &edge in &node.edges {
-                if edge != source
-                    && !flow_edges.contains(&(node_name, edge))
-                    && !path_to_node.contains_key(&edge)
+            for (&edge_name, edge) in &node.edges {
+                if edge_name != source
+                    && edge.flow < edge.capacity
+                    && !path_to_node.contains_key(edge_name)
                 {
-                    path_to_node.insert(edge, node_name);
+                    path_to_node.insert(edge_name, node_name);
 
-                    if edge == sink {
+                    if edge_name == sink {
                         path_found = true;
                         break 'outer;
                     }
 
-                    queue.push_back(edge);
+                    queue.push_back(edge_name);
                 }
             }
         }
@@ -93,37 +122,74 @@ fn edmonds_karp(graph: &Graph<'_>, source: &str, sink: &str) -> u32 {
             break;
         }
 
-        flow += 1;
-        if flow > MIN_CUT {
-            break;
+        let mut added_flow = i32::MAX;
+        let mut current_node_name = sink;
+        while current_node_name != source {
+            let prev_node_name = *path_to_node.get(current_node_name).unwrap();
+            let edge = graph.node(prev_node_name).edge(current_node_name);
+            added_flow = cmp::min(added_flow, edge.capacity - edge.flow);
+
+            current_node_name = prev_node_name;
         }
 
         let mut current_node_name = sink;
         while current_node_name != source {
-            let prev_node_name = *path_to_node.get(&current_node_name).unwrap();
-            flow_edges.insert((prev_node_name, current_node_name));
+            let prev_node_name = *path_to_node.get(current_node_name).unwrap();
+            let edge = graph.node_mut(prev_node_name).edge_mut(current_node_name);
+            edge.flow += added_flow;
+
+            let residual_edge = graph.node_mut(current_node_name).edge_mut(prev_node_name);
+            residual_edge.flow -= added_flow;
 
             current_node_name = prev_node_name;
         }
+
+        flow += added_flow;
+        if flow > MIN_CUT as i32 {
+            break;
+        }
     }
 
-    flow
+    assert!(flow >= 0);
+    flow as u32
+}
+
+fn determine_partition_size(graph: &Graph<'_>, source: &str) -> u32 {
+    let mut queue = VecDeque::new();
+    queue.push_back(source);
+
+    let mut visited = FxHashSet::default();
+    visited.insert(source);
+
+    // Initialize to 1 to include the source
+    let mut partition_size = 1;
+    while let Some(node_name) = queue.pop_front() {
+        for (&edge_name, edge) in &graph.node(node_name).edges {
+            if edge.flow < edge.capacity && visited.insert(edge_name) {
+                queue.push_back(edge_name);
+                partition_size += 1;
+            }
+        }
+    }
+
+    partition_size
 }
 
 fn solve(input: &str) -> u32 {
     let input = parse_input.parse(input).expect("Invalid input");
     let graph = Graph::new(&input);
 
-    let mut partition_size = 0_u32;
     let source = *graph.nodes.keys().next().unwrap();
     for &sink in graph.nodes.keys().filter(|&&sink| sink != source) {
-        let flow = edmonds_karp(&graph, source, sink);
+        let mut graph = graph.clone();
+        let flow = edmonds_karp(&mut graph, source, sink);
         if flow == MIN_CUT {
-            partition_size += 1;
+            let partition_size = determine_partition_size(&graph, source);
+            return partition_size * (graph.nodes.len() as u32 - partition_size);
         }
     }
 
-    partition_size * (graph.nodes.len() as u32 - partition_size)
+    panic!("no solution found")
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
