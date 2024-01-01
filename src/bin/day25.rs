@@ -205,7 +205,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 mod tests {
     use super::*;
 
-    const SAMPLE_INPUT: &str = include_str!("../sample/day25.txt");
+    const SAMPLE_INPUT: &str = include_str!("../../sample_input/day25.txt");
 
     #[test]
     fn sample_input() {

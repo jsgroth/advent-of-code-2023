@@ -63,7 +63,7 @@ impl_main!(p1: solve_part_1, p2: solve_part_2);
 mod tests {
     use super::*;
 
-    const SAMPLE_INPUT: &str = include_str!("../sample/day4.txt");
+    const SAMPLE_INPUT: &str = include_str!("../../sample_input/day4.txt");
 
     #[test]
     fn sample_input_part_1() {

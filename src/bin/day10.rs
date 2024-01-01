@@ -285,11 +285,11 @@ impl_main!(p1: solve_part_1, p2: solve_part_2);
 mod tests {
     use super::*;
 
-    const SAMPLE_INPUT: &str = include_str!("../sample/day10.txt");
-    const SAMPLE_INPUT_2: &str = include_str!("../sample/day10-2.txt");
-    const SAMPLE_INPUT_3: &str = include_str!("../sample/day10-3.txt");
-    const SAMPLE_INPUT_4: &str = include_str!("../sample/day10-4.txt");
-    const SAMPLE_INPUT_5: &str = include_str!("../sample/day10-5.txt");
+    const SAMPLE_INPUT: &str = include_str!("../../sample_input/day10.txt");
+    const SAMPLE_INPUT_2: &str = include_str!("../../sample_input/day10-2.txt");
+    const SAMPLE_INPUT_3: &str = include_str!("../../sample_input/day10-3.txt");
+    const SAMPLE_INPUT_4: &str = include_str!("../../sample_input/day10-4.txt");
+    const SAMPLE_INPUT_5: &str = include_str!("../../sample_input/day10-5.txt");
 
     #[test]
     fn sample_input_part_1() {
