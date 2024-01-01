@@ -3,10 +3,9 @@
 //! <https://adventofcode.com/2023/day/21>
 
 use advent_of_code_2023::impl_main;
+use std::cmp;
 use std::cmp::{Ordering, Reverse};
 use std::collections::BinaryHeap;
-use std::sync::mpsc;
-use std::{cmp, thread};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Point {
@@ -103,66 +102,33 @@ fn solve_part_2_inner(input: &str, target_steps: u64) -> u64 {
     // Bottom right
     count += count_corner(&map, &center_step_map, target_steps, 0, 0);
 
-    let (left_sender, left_receiver) = mpsc::channel();
-    {
-        let map = map.clone();
-        let center_step_map = center_step_map.clone();
-        thread::spawn(move || {
-            let count = count_edge(&map, &center_step_map, target_steps, |step_map| {
-                (0..map.len())
-                    .map(|i| StartPosition { i, j: map.len() - 1, step: step_map[i][0] + 1 })
-                    .collect()
-            });
-            left_sender.send(count).unwrap();
-        });
-    }
+    // Left
+    count += count_edge(&map, &center_step_map, target_steps, |step_map| {
+        (0..map.len())
+            .map(|i| StartPosition { i, j: map.len() - 1, step: step_map[i][0] + 1 })
+            .collect()
+    });
 
-    let (right_sender, right_receiver) = mpsc::channel();
-    {
-        let map = map.clone();
-        let center_step_map = center_step_map.clone();
-        thread::spawn(move || {
-            let count = count_edge(&map, &center_step_map, target_steps, |step_map| {
-                (0..map.len())
-                    .map(|i| StartPosition { i, j: 0, step: step_map[i][map.len() - 1] + 1 })
-                    .collect()
-            });
-            right_sender.send(count).unwrap();
-        });
-    }
+    // Right
+    count += count_edge(&map, &center_step_map, target_steps, |step_map| {
+        (0..map.len())
+            .map(|i| StartPosition { i, j: 0, step: step_map[i][map.len() - 1] + 1 })
+            .collect()
+    });
 
-    let (up_sender, up_receiver) = mpsc::channel();
-    {
-        let map = map.clone();
-        let center_step_map = center_step_map.clone();
-        thread::spawn(move || {
-            let count = count_edge(&map, &center_step_map, target_steps, |step_map| {
-                (0..map.len())
-                    .map(|j| StartPosition { i: map.len() - 1, j, step: step_map[0][j] + 1 })
-                    .collect()
-            });
-            up_sender.send(count).unwrap();
-        });
-    }
+    // Up
+    count += count_edge(&map, &center_step_map, target_steps, |step_map| {
+        (0..map.len())
+            .map(|j| StartPosition { i: map.len() - 1, j, step: step_map[0][j] + 1 })
+            .collect()
+    });
 
-    let (down_sender, down_receiver) = mpsc::channel();
-    {
-        let map = map.clone();
-        let center_step_map = center_step_map.clone();
-        thread::spawn(move || {
-            let count = count_edge(&map, &center_step_map, target_steps, |step_map| {
-                (0..map.len())
-                    .map(|j| StartPosition { i: 0, j, step: step_map[map.len() - 1][j] + 1 })
-                    .collect()
-            });
-            down_sender.send(count).unwrap();
-        });
-    }
-
-    count += left_receiver.recv().unwrap();
-    count += right_receiver.recv().unwrap();
-    count += up_receiver.recv().unwrap();
-    count += down_receiver.recv().unwrap();
+    // Down
+    count += count_edge(&map, &center_step_map, target_steps, |step_map| {
+        (0..map.len())
+            .map(|j| StartPosition { i: 0, j, step: step_map[map.len() - 1][j] + 1 })
+            .collect()
+    });
 
     count
 }
@@ -184,25 +150,85 @@ fn count_edge(
     start_position_fn: impl Fn(&[Vec<u64>]) -> Vec<StartPosition>,
 ) -> u64 {
     let mut start_positions = start_position_fn(center_step_map);
+    let initial_min_steps = find_min_step(&start_positions);
+    if initial_min_steps > remaining_steps {
+        return 0;
+    }
+
+    normalize_to_min_step(&mut start_positions, initial_min_steps);
+    remaining_steps -= initial_min_steps;
+
     let mut count = 0;
     let mut step_modulo = remaining_steps % 2;
     loop {
-        let min_steps = start_positions.iter().map(|position| position.step).min().unwrap();
+        let (next_step_map, _) = build_step_map(map, &start_positions);
+        count += count_positions(&next_step_map, remaining_steps, step_modulo);
+
+        let mut next_start_positions = start_position_fn(&next_step_map);
+        let min_steps = find_min_step(&next_start_positions);
         if min_steps > remaining_steps {
             return count;
         }
 
-        for position in &mut start_positions {
-            position.step -= min_steps;
-        }
-
+        normalize_to_min_step(&mut next_start_positions, min_steps);
         remaining_steps -= min_steps;
         step_modulo = step_modulo.wrapping_sub(min_steps) % 2;
 
-        let (next_step_map, _) = build_step_map(map, &start_positions);
-        count += count_positions(&next_step_map, remaining_steps, step_modulo);
+        if next_start_positions == start_positions {
+            // Loop detected; short circuit and only explicitly the last few where not the entire block is filled
+            return count
+                + count_edge_loop(map, &next_start_positions, remaining_steps, step_modulo);
+        }
 
-        start_positions = start_position_fn(&next_step_map);
+        start_positions = next_start_positions;
+    }
+}
+
+fn find_min_step(start_positions: &[StartPosition]) -> u64 {
+    start_positions.iter().map(|position| position.step).min().unwrap()
+}
+
+fn normalize_to_min_step(start_positions: &mut [StartPosition], min_step: u64) {
+    for position in start_positions {
+        position.step -= min_step;
+    }
+}
+
+fn count_edge_loop(
+    map: &[Vec<Space>],
+    start_positions: &[StartPosition],
+    remaining_steps: u64,
+    step_modulo: u64,
+) -> u64 {
+    let (step_map, steps_to_fill) = build_step_map(map, start_positions);
+
+    let even_full_count = count_positions(&step_map, (map.len() * map.len()) as u64, 0);
+    let odd_full_count = count_positions(&step_map, (map.len() * map.len()) as u64, 1);
+
+    let mut out_distance = remaining_steps / map.len() as u64;
+    let mut count = 0_u64;
+    let mut step_modulo = (step_modulo + out_distance * map.len() as u64) % 2;
+    loop {
+        let block_steps = remaining_steps - out_distance * map.len() as u64;
+        if steps_to_fill <= block_steps {
+            loop {
+                count += if step_modulo == 0 { even_full_count } else { odd_full_count };
+                step_modulo = (step_modulo + map.len() as u64) % 2;
+
+                if out_distance == 0 {
+                    return count;
+                }
+                out_distance -= 1;
+            }
+        }
+
+        count += count_positions(&step_map, block_steps, step_modulo);
+
+        if out_distance == 0 {
+            return count;
+        }
+        out_distance -= 1;
+        step_modulo = (step_modulo + map.len() as u64) % 2;
     }
 }
 
@@ -310,7 +336,7 @@ fn build_step_map(map: &[Vec<Space>], start_positions: &[StartPosition]) -> (Vec
     (step_map, max_steps)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct StartPosition {
     i: usize,
     j: usize,
