@@ -6,7 +6,7 @@
 //!
 //! Part 2: Exhaustively searching no longer works because removing the slope restriction dramatically increases the
 //! size of the search space. Instead, start by converting the maze into a graph which has nodes for the start position,
-//! the end position, and each space which at least 3 adjacent open spaces. Two nodes are connected by an edge if there
+//! the end position, and each space which has at least 3 adjacent open spaces. Two nodes are connected by an edge if there
 //! is a path between the nodes that does not pass through any other nodes, and the weight of the edge is equal to the
 //! length of the path.
 //!

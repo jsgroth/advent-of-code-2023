@@ -20,6 +20,7 @@
 use advent_of_code_2023::impl_main;
 use fixed::types::I64F64;
 use fixed_macro::fixed;
+use std::ops::{Add, AddAssign, Index, IndexMut, Mul, Sub};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -29,6 +30,103 @@ use winnow::combinator::{opt, separated, separated_pair};
 use fixed::prelude::*;
 use winnow::prelude::*;
 use winnow::token::take_while;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Matrix<T, const M: usize, const N: usize>([[T; N]; M]);
+
+impl<T, const M: usize, const N: usize> Matrix<T, M, N> {
+    fn swap(&mut self, i: usize, j: usize) {
+        self.0.swap(i, j);
+    }
+}
+
+impl<T, const M: usize, const N: usize> Index<usize> for Matrix<T, M, N> {
+    type Output = [T; N];
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl<T, const M: usize, const N: usize> IndexMut<usize> for Matrix<T, M, N> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.0[index]
+    }
+}
+
+impl<T: Copy + Default + Add<Output = T>, const M: usize, const N: usize> Add for Matrix<T, M, N> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut result = [[T::default(); N]; M];
+
+        for i in 0..M {
+            for j in 0..N {
+                result[i][j] = self.0[i][j] + rhs.0[i][j];
+            }
+        }
+
+        Self(result)
+    }
+}
+
+impl<T: Copy + Default + Sub<Output = T>, const M: usize, const N: usize> Sub for Matrix<T, M, N> {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let mut result = [[T::default(); N]; M];
+
+        for i in 0..M {
+            for j in 0..N {
+                result[i][j] = self.0[i][j] - rhs.0[i][j];
+            }
+        }
+
+        Self(result)
+    }
+}
+
+impl<T: Copy + Default + Mul<Output = T>, const M: usize, const N: usize> Mul<T>
+    for Matrix<T, M, N>
+{
+    type Output = Self;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        let mut result = self.0;
+
+        for i in 0..M {
+            for j in 0..N {
+                result[i][j] = rhs * self.0[i][j];
+            }
+        }
+
+        Self(result)
+    }
+}
+
+impl<
+    T: Copy + Default + AddAssign + Mul<Output = T>,
+    const M: usize,
+    const N: usize,
+    const M2: usize,
+> Mul<Matrix<T, N, M2>> for Matrix<T, M, N>
+{
+    type Output = Matrix<T, M, M2>;
+
+    fn mul(self, rhs: Matrix<T, N, M2>) -> Self::Output {
+        let mut result = [[T::default(); M2]; M];
+
+        for i in 0..M {
+            for j in 0..M2 {
+                for k in 0..N {
+                    result[i][j] += self.0[i][k] * rhs.0[k][j];
+                }
+            }
+        }
+
+        Matrix(result)
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Coords {
@@ -71,7 +169,7 @@ macro_rules! i64f64 {
     }
 }
 
-fn gauss_jordan<const M: usize, const N: usize>(matrix: &mut [[I64F64; N]; M]) {
+fn gauss_jordan<const M: usize, const N: usize>(matrix: &mut Matrix<I64F64, M, N>) {
     let mut pivot_row = 0;
     let mut pivot_col = 0;
     while pivot_row < M && pivot_col < N {
@@ -133,10 +231,10 @@ fn find_2d_intersection(a: &Hailstone, b: &Hailstone) -> Option<(I64F64, I64F64)
     // This can be rewritten as:
     //   a0 * n0 - a1 * n1 = b1 - b0
     //   c0 * n0 - c1 * n1 = d1 - d0
-    let mut matrix = [
+    let mut matrix = Matrix([
         [a.velocity.x.into(), (-b.velocity.x).into(), (b.position.x - a.position.x).into()],
         [a.velocity.y.into(), (-b.velocity.y).into(), (b.position.y - a.position.y).into()],
-    ];
+    ]);
 
     gauss_jordan(&mut matrix);
 
@@ -223,7 +321,7 @@ fn find_connecting_line(
     let h0 = &hailstones[0];
     let h1 = &hailstones[1];
     let h2 = &hailstones[2];
-    let mut matrix = [
+    let mut matrix = Matrix([
         [
             i64f64!(1),
             i64f64!(0),
@@ -305,7 +403,7 @@ fn find_connecting_line(
             (rock_velocity.z - h2.velocity.z).into(),
             h2.position.z.into(),
         ],
-    ];
+    ]);
 
     gauss_jordan(&mut matrix);
 
