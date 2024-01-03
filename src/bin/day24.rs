@@ -388,7 +388,11 @@ fn find_rock_position(hailstones: &[Hailstone]) -> Vector3<i64> {
 
     gauss_jordan(&mut matrix);
 
-    assert!(matrix[5][..5].iter().all(|&n| n < i64f64!(1.0e-3)));
+    assert_slice_is_zero(&matrix[5][..5]);
+    assert_slice_is_zero(&matrix[4][..4]);
+    assert_slice_is_zero(&matrix[3][..3]);
+    assert_slice_is_zero(&matrix[2][..2]);
+    assert_slice_is_zero(&matrix[1][..1]);
 
     let vz = matrix[5][6] / matrix[5][5];
     let vy = (matrix[4][6] - vz * matrix[4][5]) / matrix[4][4];
@@ -410,6 +414,10 @@ fn find_rock_position(hailstones: &[Hailstone]) -> Vector3<i64> {
         / matrix[0][0];
 
     Vector3::new([px, py, pz]).round_to_i64()
+}
+
+fn assert_slice_is_zero(values: &[I64F64]) {
+    assert!(values.iter().all(|&n| n.abs() < i64f64!(1.0e-3)));
 }
 
 impl_main!(p1: solve_part_1, p2: solve_part_2);
