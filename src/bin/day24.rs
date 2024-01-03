@@ -120,30 +120,46 @@ impl<
     }
 }
 
+impl<const M: usize, const N: usize> Matrix<I64F64, M, N> {
+    fn round_to_i64(&self) -> Matrix<i64, M, N> {
+        let mut result = [[0; N]; M];
+
+        for (i, result_row) in result.iter_mut().enumerate() {
+            for (j, result_value) in result_row.iter_mut().enumerate() {
+                *result_value = i64::lossy_from(self[i][j].round());
+            }
+        }
+
+        Matrix(result)
+    }
+}
+
+impl<T: Copy + Default + Add<Output = T> + Mul<Output = T>, const M: usize> Matrix<T, M, 1> {
+    fn dot_product(&self, other: &Self) -> T {
+        self.0.iter().zip(&other.0).map(|(&[a], &[b])| a * b).fold(T::default(), |sum, n| sum + n)
+    }
+}
+
 type Vector<T, const N: usize> = Matrix<T, N, 1>;
 type Vector3<T> = Vector<T, 3>;
 
 impl<T: Copy + Default, const N: usize> Vector<T, N> {
     fn new(arr: [T; N]) -> Self {
-        let mut transposed = [[T::default(); 1]; N];
-        for (&value, transposed_value) in arr.iter().zip(&mut transposed) {
-            transposed_value[0] = value;
-        }
-        Self(transposed)
+        Self(arr.map(|n| [n]))
     }
 }
 
 impl<T: Copy> Vector3<T> {
     fn x(&self) -> T {
-        self.0[0][0]
+        self[0][0]
     }
 
     fn y(&self) -> T {
-        self.0[1][0]
+        self[1][0]
     }
 
     fn z(&self) -> T {
-        self.0[2][0]
+        self[2][0]
     }
 }
 
@@ -153,16 +169,6 @@ impl<T: Copy + Default + Neg<Output = T>> Vector3<T> {
             [T::default(), -self.z(), self.y()],
             [self.z(), T::default(), -self.x()],
             [-self.y(), self.x(), T::default()],
-        ])
-    }
-}
-
-impl Vector3<I64F64> {
-    fn round_to_i64(&self) -> Vector3<i64> {
-        Vector3::new([
-            i64::lossy_from(self.x().round()),
-            i64::lossy_from(self.y().round()),
-            i64::lossy_from(self.z().round()),
         ])
     }
 }
@@ -382,6 +388,7 @@ fn find_rock_position(hailstones: &[Hailstone]) -> Vector3<i64> {
     let h0 = &hailstones[0];
     let h1 = &hailstones[1];
     let h2 = &hailstones[2];
+
     let mut matrix = Matrix([[i64f64!(0); 7]; 6]);
     matrix.0[..3].copy_from_slice(&generate_linear_equations(h0, h1));
     matrix.0[3..].copy_from_slice(&generate_linear_equations(h0, h2));
@@ -394,26 +401,19 @@ fn find_rock_position(hailstones: &[Hailstone]) -> Vector3<i64> {
     assert_slice_is_zero(&matrix[2][..2]);
     assert_slice_is_zero(&matrix[1][..1]);
 
-    let vz = matrix[5][6] / matrix[5][5];
-    let vy = (matrix[4][6] - vz * matrix[4][5]) / matrix[4][4];
-    let vx = (matrix[3][6] - vz * matrix[3][5] - vy * matrix[3][4]) / matrix[3][3];
-    let pz =
-        (matrix[2][6] - vz * matrix[2][5] - vy * matrix[2][4] - vx * matrix[2][3]) / matrix[2][2];
-    let py = (matrix[1][6]
-        - vz * matrix[1][5]
-        - vy * matrix[1][4]
-        - vx * matrix[1][3]
-        - pz * matrix[1][2])
-        / matrix[1][1];
-    let px = (matrix[0][6]
-        - vz * matrix[0][5]
-        - vy * matrix[0][4]
-        - vx * matrix[0][3]
-        - pz * matrix[0][2]
-        - py * matrix[0][1])
-        / matrix[0][0];
+    let mut solution_vector = Vector::new([i64f64!(0); 6]);
+    for i in (0..6).rev() {
+        let mut system_coefficients = [i64f64!(0); 6];
+        system_coefficients.copy_from_slice(&matrix[i][..6]);
+        let system_coefficients = Vector::new(system_coefficients);
 
-    Vector3::new([px, py, pz]).round_to_i64()
+        let solution_value =
+            (matrix[i][6] - solution_vector.dot_product(&system_coefficients)) / matrix[i][i];
+        solution_vector[i][0] = solution_value;
+    }
+
+    Vector3::new([solution_vector[0][0], solution_vector[1][0], solution_vector[2][0]])
+        .round_to_i64()
 }
 
 fn assert_slice_is_zero(values: &[I64F64]) {
