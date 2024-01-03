@@ -7,23 +7,15 @@
 //! elimination to solve for the two times (or to determine that there is no solution) and count the intersection if both
 //! times are positive and the X/Y intersection coordinates are within range.
 //!
-//! Part 2: This solution is bad (extremely slow). It brute force searches over all possible rock velocities, starting from
-//! the lowest velocities and gradually increasing. For each rock velocity, it creates a system of 9 linear equations where
-//! the variables are:
-//! - The X, Y, and Z coordinates of the rock at time 0 (the answer to the problem)
-//! - The times that the rock collides with the first 3 hailstones
-//! The equations themselves are for when the rock matches the X, Y, and Z coordinates of each of the first 3 hailstones.
-//!
-//! It then uses Gaussian elimination to either find a solution or to determine that there is no solution. If a solution
-//! is found, it is assumed that this is the only valid solution to the problem.
+//! Part 2: Use some clever linear algebra to create a system of linear equations where the variables are the X/Y/Z
+//! coordinates of the initial rock position and the rock velocity, then use Gaussian elimination to solve the equations.
+//! Only the first 3 hailstones are considered because 2 pairs of hailstones are enough to provide the 6 equations
+//! necessary to solve for 6 unknowns.
 
 use advent_of_code_2023::impl_main;
 use fixed::types::I64F64;
 use fixed_macro::fixed;
-use std::ops::{Add, AddAssign, Index, IndexMut, Mul, Sub};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
+use std::ops::{Add, Index, IndexMut, Mul, Neg, Sub};
 use winnow::ascii::{newline, space1};
 use winnow::combinator::{opt, separated, separated_pair};
 
@@ -31,7 +23,7 @@ use fixed::prelude::*;
 use winnow::prelude::*;
 use winnow::token::take_while;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Matrix<T, const M: usize, const N: usize>([[T; N]; M]);
 
 impl<T, const M: usize, const N: usize> Matrix<T, M, N> {
@@ -60,9 +52,9 @@ impl<T: Copy + Default + Add<Output = T>, const M: usize, const N: usize> Add fo
     fn add(self, rhs: Self) -> Self::Output {
         let mut result = [[T::default(); N]; M];
 
-        for i in 0..M {
-            for j in 0..N {
-                result[i][j] = self.0[i][j] + rhs.0[i][j];
+        for (i, result_row) in result.iter_mut().enumerate() {
+            for (j, result_value) in result_row.iter_mut().enumerate() {
+                *result_value = self[i][j] + rhs[i][j];
             }
         }
 
@@ -76,9 +68,9 @@ impl<T: Copy + Default + Sub<Output = T>, const M: usize, const N: usize> Sub fo
     fn sub(self, rhs: Self) -> Self::Output {
         let mut result = [[T::default(); N]; M];
 
-        for i in 0..M {
-            for j in 0..N {
-                result[i][j] = self.0[i][j] - rhs.0[i][j];
+        for (i, result_row) in result.iter_mut().enumerate() {
+            for (j, result_value) in result_row.iter_mut().enumerate() {
+                *result_value = self[i][j] - rhs[i][j];
             }
         }
 
@@ -94,9 +86,9 @@ impl<T: Copy + Default + Mul<Output = T>, const M: usize, const N: usize> Mul<T>
     fn mul(self, rhs: T) -> Self::Output {
         let mut result = self.0;
 
-        for i in 0..M {
-            for j in 0..N {
-                result[i][j] = rhs * self.0[i][j];
+        for (i, result_row) in result.iter_mut().enumerate() {
+            for (j, result_value) in result_row.iter_mut().enumerate() {
+                *result_value = rhs * self[i][j];
             }
         }
 
@@ -105,7 +97,7 @@ impl<T: Copy + Default + Mul<Output = T>, const M: usize, const N: usize> Mul<T>
 }
 
 impl<
-    T: Copy + Default + AddAssign + Mul<Output = T>,
+    T: Copy + Default + Add<Output = T> + Mul<Output = T>,
     const M: usize,
     const N: usize,
     const M2: usize,
@@ -116,10 +108,10 @@ impl<
     fn mul(self, rhs: Matrix<T, N, M2>) -> Self::Output {
         let mut result = [[T::default(); M2]; M];
 
-        for i in 0..M {
-            for j in 0..M2 {
+        for (i, result_row) in result.iter_mut().enumerate() {
+            for (j, result_value) in result_row.iter_mut().enumerate() {
                 for k in 0..N {
-                    result[i][j] += self.0[i][k] * rhs.0[k][j];
+                    *result_value = *result_value + self[i][k] * rhs[k][j];
                 }
             }
         }
@@ -128,27 +120,67 @@ impl<
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Coords {
-    x: i64,
-    y: i64,
-    z: i64,
+type Vector<T, const N: usize> = Matrix<T, N, 1>;
+type Vector3<T> = Vector<T, 3>;
+
+impl<T: Copy + Default, const N: usize> Vector<T, N> {
+    fn new(arr: [T; N]) -> Self {
+        let mut transposed = [[T::default(); 1]; N];
+        for (&value, transposed_value) in arr.iter().zip(&mut transposed) {
+            transposed_value[0] = value;
+        }
+        Self(transposed)
+    }
+}
+
+impl<T: Copy> Vector3<T> {
+    fn x(&self) -> T {
+        self.0[0][0]
+    }
+
+    fn y(&self) -> T {
+        self.0[1][0]
+    }
+
+    fn z(&self) -> T {
+        self.0[2][0]
+    }
+}
+
+impl<T: Copy + Default + Neg<Output = T>> Vector3<T> {
+    fn skew_symmetric_matrix(&self) -> Matrix<T, 3, 3> {
+        Matrix([
+            [T::default(), -self.z(), self.y()],
+            [self.z(), T::default(), -self.x()],
+            [-self.y(), self.x(), T::default()],
+        ])
+    }
+}
+
+impl Vector3<I64F64> {
+    fn round_to_i64(&self) -> Vector3<i64> {
+        Vector3::new([
+            i64::lossy_from(self.x().round()),
+            i64::lossy_from(self.y().round()),
+            i64::lossy_from(self.z().round()),
+        ])
+    }
 }
 
 #[derive(Debug, Clone)]
 struct Hailstone {
-    position: Coords,
-    velocity: Coords,
+    position: Vector3<i64>,
+    velocity: Vector3<i64>,
 }
 
 fn parse_i64(input: &mut &str) -> PResult<i64> {
     take_while(1.., |c: char| c == '-' || c.is_ascii_digit()).parse_to().parse_next(input)
 }
 
-fn parse_coords(input: &mut &str) -> PResult<Coords> {
+fn parse_coords(input: &mut &str) -> PResult<Vector3<i64>> {
     let coords: Vec<_> = separated(3, parse_i64, (',', space1)).parse_next(input)?;
     let &[x, y, z] = coords.as_slice() else { unreachable!("separated(3)") };
-    Ok(Coords { x, y, z })
+    Ok(Vector3::new([x, y, z]))
 }
 
 fn parse_hailstone(input: &mut &str) -> PResult<Hailstone> {
@@ -232,8 +264,8 @@ fn find_2d_intersection(a: &Hailstone, b: &Hailstone) -> Option<(I64F64, I64F64)
     //   a0 * n0 - a1 * n1 = b1 - b0
     //   c0 * n0 - c1 * n1 = d1 - d0
     let mut matrix = Matrix([
-        [a.velocity.x.into(), (-b.velocity.x).into(), (b.position.x - a.position.x).into()],
-        [a.velocity.y.into(), (-b.velocity.y).into(), (b.position.y - a.position.y).into()],
+        [a.velocity.x().into(), (-b.velocity.x()).into(), (b.position.x() - a.position.x()).into()],
+        [a.velocity.y().into(), (-b.velocity.y()).into(), (b.position.y() - a.position.y()).into()],
     ]);
 
     gauss_jordan(&mut matrix);
@@ -250,185 +282,134 @@ fn find_2d_intersection(a: &Hailstone, b: &Hailstone) -> Option<(I64F64, I64F64)
         return None;
     }
 
-    let x = I64F64::from(b.position.x) + n1 * I64F64::from(b.velocity.x);
-    let y = I64F64::from(b.position.y) + n1 * I64F64::from(b.velocity.y);
+    let x = I64F64::from(b.position.x()) + n1 * I64F64::from(b.velocity.x());
+    let y = I64F64::from(b.position.y()) + n1 * I64F64::from(b.velocity.y());
 
     Some((x, y))
 }
 
 fn solve_part_2(input: &str) -> i64 {
-    const THREADS: usize = 16;
-
     let hailstones = parse_input.parse(input).expect("Invalid input");
 
-    let done = Arc::new(AtomicBool::new(false));
-    let mut handles = Vec::new();
-    for initial_step in 0..THREADS as i64 {
-        let hailstones = hailstones.clone();
-        let done = Arc::clone(&done);
-        handles.push(thread::spawn(move || {
-            for max_velocity in (1 + initial_step..).step_by(THREADS) {
-                if done.load(Ordering::Relaxed) {
-                    return None;
-                }
+    let rock_position = find_rock_position(&hailstones);
 
-                for vx in -max_velocity..=max_velocity {
-                    for vy in -max_velocity..=max_velocity {
-                        for vz in -max_velocity..=max_velocity {
-                            if vx.abs() < max_velocity
-                                && vy.abs() < max_velocity
-                                && vz.abs() < max_velocity
-                            {
-                                continue;
-                            }
-
-                            let rock_velocity = Coords { x: vx, y: vy, z: vz };
-                            if let Some((x, y, z)) =
-                                find_connecting_line(&hailstones, rock_velocity)
-                            {
-                                done.store(true, Ordering::Relaxed);
-                                return Some(
-                                    i64::lossy_from(x.round().int())
-                                        + i64::lossy_from(y.round().int())
-                                        + i64::lossy_from(z.round().int()),
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-
-            unreachable!("above loops will never run to completion")
-        }));
-    }
-
-    for handle in handles {
-        if let Some(solution) = handle.join().unwrap() {
-            return solution;
-        }
-    }
-
-    panic!("no solution found")
+    rock_position.x() + rock_position.y() + rock_position.z()
 }
 
-fn find_connecting_line(
-    hailstones: &[Hailstone],
-    rock_velocity: Coords,
-) -> Option<(I64F64, I64F64, I64F64)> {
-    // Create a matrix representing a system of equations of the following form:
-    //   a*x + b*y + c*z + d*n0 + e*n1 + f*n2 = g
-    // Fill with 9 equations (x/y/z for 3 hailstones) because using only 2 hailstones will give false positives
+fn generate_linear_equations(a: &Hailstone, b: &Hailstone) -> [[I64F64; 7]; 3] {
+    // These 3 equations are of the form:
+    //   a * px + b * py + c * pz + d * vx + e * vy + f * vz = g
+    // Where px/py/pz are the coordinates of the initial rock position, vz/vy/vz are the coordinates of the rock
+    // velocity, and a/b/c/d/e/f/g are the coefficients.
+    //
+    // There are a few tricks used to derive these equations. We start with the following vector equation where pr
+    // is the initial rock position, vr is the rock velocity, p0 is hailstone 0's initial position, v0 is hailstone 0's
+    // velocity, and t is the parameter:
+    //   pr + vr * t = p0 + v0 * t
+    //
+    // This equation represents the fact that there must exist some time t where the rock is at the exact same position
+    // as hailstone 0. It can be rewritten as:
+    //   pr - p0 = -t * (vr - v0)
+    //
+    // Any vector multiplied by a scalar is another vector in either the same direction or the opposite direction with
+    // a different magnitude, so this implies that (pr - p0) and (vr - v0) are parallel. The cross product of any two
+    // parallel vectors is the zero vector:
+    //   (pr - p0) x (vr - v0) = 0
+    //
+    // The cross product operation is distributive, so this can be rewritten as:
+    //   pr x vr - pr x v0 - p0 x vr + p0 x v0 = 0
+    //
+    // Now imagine we did the same thing with hailstone 1 to derive a similar equation for hailstone 1's position and
+    // velocity p1 and v1. We can set these equal to each other:
+    //   pr x vr - pr x v0 - p0 x vr + p0 x v0 = pr x vr - pr x v1 - p1 x vr + p1 x v1
+    //
+    // The non-linear (pr x vr) term is common to both sides, so it cancels out and we're left with:
+    //   p0 x v0 - pr x v0 - p0 x vr = p1 x v1 - pr x v1 - p1 x vr
+    //
+    // This can be rewritten as:
+    //   p0 x v0 - p1 x v1 = pr x (v0 - v1) + (p0 - p1) x vr
+    //
+    // Cross product is anti-commutative, so this is equivalent to:
+    //   p0 x v0 - p1 x v1 = (p0 - p1) x vr - (v0 - v1) x pr
+    //
+    // The cross products can be converted into matrix multiplications by converting the first vector in each expression
+    // into its 3x3 skew-symmetric matrix form, which when multiplied out produces the following 3 equations:
+    //   py * (v0 - v1).z + pz * -(v0 - v1).y + vy * -(p0 - p1).z + vz * (p0 - p1).y = (p0 x v0 - p1 x v1).x
+    //   px * -(v0 - v1).z + pz * (v0 - v1).x + vx * (p0 - p1).z + vz * -(p0 - p1).x = (p0 x v0 - p1 x v1).y
+    //   px * (v0 - v1).y + py * -(v0 - v1).x + vx * -(p0 - p1).y + vy * (p0 - p1).x = (p0 x v0 - p1 x v1).z
+
+    let position_diff = a.position - b.position;
+    let velocity_diff = a.velocity - b.velocity;
+
+    let constant_vector = a.position.skew_symmetric_matrix() * a.velocity
+        - b.position.skew_symmetric_matrix() * b.velocity;
+
+    [
+        [
+            0,
+            velocity_diff.z(),
+            -velocity_diff.y(),
+            0,
+            -position_diff.z(),
+            position_diff.y(),
+            constant_vector.x(),
+        ]
+        .map(I64F64::from),
+        [
+            -velocity_diff.z(),
+            0,
+            velocity_diff.x(),
+            position_diff.z(),
+            0,
+            -position_diff.x(),
+            constant_vector.y(),
+        ]
+        .map(I64F64::from),
+        [
+            velocity_diff.y(),
+            -velocity_diff.x(),
+            0,
+            -position_diff.y(),
+            position_diff.x(),
+            0,
+            constant_vector.z(),
+        ]
+        .map(I64F64::from),
+    ]
+}
+
+fn find_rock_position(hailstones: &[Hailstone]) -> Vector3<i64> {
     let h0 = &hailstones[0];
     let h1 = &hailstones[1];
     let h2 = &hailstones[2];
-    let mut matrix = Matrix([
-        [
-            i64f64!(1),
-            i64f64!(0),
-            i64f64!(0),
-            (rock_velocity.x - h0.velocity.x).into(),
-            i64f64!(0),
-            i64f64!(0),
-            h0.position.x.into(),
-        ],
-        [
-            i64f64!(0),
-            i64f64!(1),
-            i64f64!(0),
-            (rock_velocity.y - h0.velocity.y).into(),
-            i64f64!(0),
-            i64f64!(0),
-            h0.position.y.into(),
-        ],
-        [
-            i64f64!(0),
-            i64f64!(0),
-            i64f64!(1),
-            (rock_velocity.z - h0.velocity.z).into(),
-            i64f64!(0),
-            i64f64!(0),
-            h0.position.z.into(),
-        ],
-        [
-            i64f64!(1),
-            i64f64!(0),
-            i64f64!(0),
-            i64f64!(0),
-            (rock_velocity.x - h1.velocity.x).into(),
-            i64f64!(0),
-            h1.position.x.into(),
-        ],
-        [
-            i64f64!(0),
-            i64f64!(1),
-            i64f64!(0),
-            i64f64!(0),
-            (rock_velocity.y - h1.velocity.y).into(),
-            i64f64!(0),
-            h1.position.y.into(),
-        ],
-        [
-            i64f64!(0),
-            i64f64!(0),
-            i64f64!(1),
-            i64f64!(0),
-            (rock_velocity.z - h1.velocity.z).into(),
-            i64f64!(0),
-            h1.position.z.into(),
-        ],
-        [
-            i64f64!(1),
-            i64f64!(0),
-            i64f64!(0),
-            i64f64!(0),
-            i64f64!(0),
-            (rock_velocity.x - h2.velocity.x).into(),
-            h2.position.x.into(),
-        ],
-        [
-            i64f64!(0),
-            i64f64!(1),
-            i64f64!(0),
-            i64f64!(0),
-            i64f64!(0),
-            (rock_velocity.y - h2.velocity.y).into(),
-            h2.position.y.into(),
-        ],
-        [
-            i64f64!(0),
-            i64f64!(0),
-            i64f64!(1),
-            i64f64!(0),
-            i64f64!(0),
-            (rock_velocity.z - h2.velocity.z).into(),
-            h2.position.z.into(),
-        ],
-    ]);
+    let mut matrix = Matrix([[i64f64!(0); 7]; 6]);
+    matrix.0[..3].copy_from_slice(&generate_linear_equations(h0, h1));
+    matrix.0[3..].copy_from_slice(&generate_linear_equations(h0, h2));
 
     gauss_jordan(&mut matrix);
 
-    if !matrix[6].iter().all(|&n| n.abs() < i64f64!(1.0e-3)) {
-        return None;
-    }
+    assert!(matrix[5][..5].iter().all(|&n| n < i64f64!(1.0e-3)));
 
-    if !matrix[5][..5].iter().all(|&n| n.abs() < i64f64!(1.0e-3))
-        || matrix[5][5].abs() < i64f64!(1.0e-3)
-    {
-        return None;
-    }
+    let vz = matrix[5][6] / matrix[5][5];
+    let vy = (matrix[4][6] - vz * matrix[4][5]) / matrix[4][4];
+    let vx = (matrix[3][6] - vz * matrix[3][5] - vy * matrix[3][4]) / matrix[3][3];
+    let pz =
+        (matrix[2][6] - vz * matrix[2][5] - vy * matrix[2][4] - vx * matrix[2][3]) / matrix[2][2];
+    let py = (matrix[1][6]
+        - vz * matrix[1][5]
+        - vy * matrix[1][4]
+        - vx * matrix[1][3]
+        - pz * matrix[1][2])
+        / matrix[1][1];
+    let px = (matrix[0][6]
+        - vz * matrix[0][5]
+        - vy * matrix[0][4]
+        - vx * matrix[0][3]
+        - pz * matrix[0][2]
+        - py * matrix[0][1])
+        / matrix[0][0];
 
-    let n2 = matrix[5][6] / matrix[5][5];
-    let n1 = (matrix[4][6] - n2 * matrix[4][5]) / matrix[4][4];
-    let n0 = (matrix[3][6] - n2 * matrix[3][5] - n1 * matrix[3][4]) / matrix[3][3];
-    if n0 <= i64f64!(0) || n1 <= i64f64!(0) || n2 <= i64f64!(0) {
-        return None;
-    }
-
-    let rock_x = I64F64::from(h0.position.x) - n0 * I64F64::from(rock_velocity.x - h0.velocity.x);
-    let rock_y = I64F64::from(h0.position.y) - n0 * I64F64::from(rock_velocity.y - h0.velocity.y);
-    let rock_z = I64F64::from(h0.position.z) - n0 * I64F64::from(rock_velocity.z - h0.velocity.z);
-
-    Some((rock_x, rock_y, rock_z))
+    Vector3::new([px, py, pz]).round_to_i64()
 }
 
 impl_main!(p1: solve_part_1, p2: solve_part_2);
